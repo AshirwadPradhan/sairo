@@ -16,7 +16,7 @@ if not os.path.exists(OBS_BUCKET_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_BUCKET_DIR, shell=True, check=True)
         if cp.returncode == 0:
-            print(f'{OBS_BUCKET_DIR} Bucket Created')
+            print(f'{OBS_BUCKET_DIR} Bucket Directory Created')
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
@@ -26,7 +26,16 @@ if not os.path.exists(OBS_TMP_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_DIR, shell=True, check=True)
         if cp.returncode == 0:
-            print(f'{OBS_TMP_DIR} Bucket Created')
+            print(f'{OBS_TMP_DIR} Temp directory Created')
+    except subprocess.CalledProcessError as e:
+        print(e.stderr)
+
+OBS_TMPOBJ_DIR = '/home/dominouzu/sairo/tmpobj'
+if not os.path.exists(OBS_TMPOBJ_DIR):
+    try:
+        cp = subprocess.run('mkdir '+OBS_TMPOBJ_DIR, shell=True, check=True)
+        if cp.returncode == 0:
+            print(f'{OBS_TMP_DIR} TempOBJ directory Created')
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
@@ -36,6 +45,7 @@ ALLOWED_EXTENSIONS = ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']
 app = Flask(__name__)
 app.config['OBS_TMP_DIR'] = OBS_TMP_DIR
 app.config['OBS_BUCKET_DIR'] = OBS_BUCKET_DIR
+app.config['OBS_TMPOBJ_DIR'] = OBS_TMPOBJ_DIR
 app.config['SECRET_KEY'] = b'_5#y2L"F4Q8z\n\xec]/'
 
 def allowed_file(filename):
@@ -133,13 +143,14 @@ def create_object():
                 save_path = os.path.join(app.config['OBS_TMP_DIR'], filename) 
                 file.save(save_path)
                 print(f'File {filename} saved...')
-
-                cp = subprocess.run('mkdir '+OBS_BUCKET_DIR+'/'+bucket_name+'/'+filename, shell=True, check=True)
-                if cp.returncode == 0:
-                    print(f'{filename} Object Initialized...')
-                    flash(f'{filename} Object Initialized')
                 
                 object_path = OBS_BUCKET_DIR+'/'+bucket_name+'/'+filename
+                if not os.path.exists(object_path):
+                    cp = subprocess.run('mkdir '+OBS_BUCKET_DIR+'/'+bucket_name+'/'+filename, shell=True, check=True)
+                    if cp.returncode == 0:
+                        print(f'{filename} Object Initialized...')
+                        flash(f'{filename} Object Initialized')
+                
 
                 #**********************************************************
                 #**Make this part aysnchronous
@@ -162,8 +173,8 @@ def create_object():
                 
                 try:
 
-                    poh = PersistObjectHandler(sairo_object_obj)
-                    if poh.persist():
+                    poh = PersistObjectHandler()
+                    if poh.persist(sairo_object_obj):
                         print(f'Object {sairo_object_obj.object_key} Serialized...')
                         flash('Bucket Saved')
 
@@ -174,7 +185,8 @@ def create_object():
                 
                 #***********************************************************
 
-                return redirect(url_for('uploaded_file', filename = filename))
+                return redirect(request.url)
+                # return redirect(url_for('uploaded_file', filename = filename))
 
             except FileNotFoundError:
                 print(f'File Dest not found {filename}')
@@ -204,7 +216,38 @@ def create_object():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
 
-    return send_from_directory(app.config['OBS_TMP_DIR'], filename)
+    return send_from_directory(app.config['OBS_TMPOBJ_DIR'], filename)
+
+@app.route('/getobject', methods=['GET', 'POST'])
+def get_object():
+    
+    if request.method == 'POST':
+        
+        object_name = str(request.form['objectName'])
+        bucket_name = str(request.form['bucketName'])
+        
+        #******************************************************************
+        #**Make this async
+        ph = PersistObjectHandler()
+        sairo_object = ph.read(os.path.join(OBS_BUCKET_DIR, bucket_name, object_name), 
+                        object_name)
+        f = open(OBS_TMPOBJ_DIR+'/'+sairo_object.object_key, 'wb')
+        f.write(sairo_object.file_bin)
+        f.close()
+        #*******************************************************************
+        return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
+
+    return ''' 
+        <!doctype html>
+        <title> Get Object </title>
+        <h1> Get A Object </h1>
+        <form method=post action='/getobject'>
+            <input type=text name=bucketName placeholder='Enter Bucket Name'>
+            <p> </p>
+            <input type=text name=objectName placeholder='Enter Object Name'>
+            <input type=submit value=Get Object>
+        </form>
+        '''
 
 
 @app.route('/deletebucket', methods=['GET', 'POST'])

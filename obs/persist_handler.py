@@ -34,10 +34,12 @@ class PersistBucketHandler:
 
 class PersistObjectHandler:
 
-    def __init__(self, sairo_object: SairoObject):
-        self._ohobj = sairo_object
+    def __init__(self):
+        self._ohobj = None
     
-    def persist(self) -> bool:
+    def persist(self, sairo_object) -> bool:
+
+        self._ohobj = sairo_object
 
         self._ohobj.version_id = self.determine_version()
         object_path = os.path.join(OBS_BUCKET_DIR, self._ohobj.bucket, self._ohobj.object_key)
@@ -50,10 +52,13 @@ class PersistObjectHandler:
         else:
             return False
     
-    def read(self, serial_object_path: str) -> SairoObject:
+    def read(self, serial_object_path: str, object_name: str) -> SairoObject:
         
         bs = ObjectSerializer()
-        return bs.deserialize(serial_object_path)
+        list_files = os.listdir(serial_object_path)
+        tmp_path = serial_object_path+'/'+object_name+str(len(list_files))+'.pk'
+        print(tmp_path)
+        return bs.deserialize(tmp_path)
     
     def determine_version(self) -> int:
         
