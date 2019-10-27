@@ -1,9 +1,11 @@
 import os
-from flask import Flask, flash, request, redirect, url_for
-from werkzeug.utils import secure_filename
-from flask import send_from_directory
 import subprocess
-from obs.bucket import Bucket
+from flask import Flask, flash, request, redirect, url_for
+from flask import send_from_directory
+from werkzeug.utils import secure_filename
+from obs.sairo_bucket import SairoBucket
+from obs.sairo_objects import SairoObject
+from obs.persist_handler import PersistBucketHandler
 
 OBS_TMP_DIR = '/home/dominouzu/sairo/tmp'
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
@@ -29,6 +31,22 @@ def bucket_create():
             returncode = subprocess.run('mkdir '+OBS_BUCKET_DIR+'/'+bucket_name, shell=True, check=True)
             print(f'{bucket_name} Bucket Created')
             flash(f'{bucket_name} Bucket Created')
+
+            #**************************************************
+            ##Make this part asynchronous
+            sairo_bucket_obj = SairoBucket(bucket_name)
+            try:
+                
+                pbh = PersistBucketHandler(sairo_bucket_obj)
+                if pbh.persist():
+                    print('Bucket Serialized...')
+                    flash('Bucket Saved')
+
+            except FileNotFoundError:
+
+                print('Requested Bucket is not present')
+                flash('Bucket Not Created Yet') 
+            #***************************************************
 
             return redirect(request.url)
 
@@ -108,5 +126,3 @@ def uploaded_file(filename):
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-

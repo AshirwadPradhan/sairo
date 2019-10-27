@@ -1,13 +1,13 @@
 from datetime import datetime
-class Bucket:
+class SairoBucket:
     
     def __init__(self, name):
         
         self._name = name
         self._KIND = "storage#bucket"
         self._time_created = datetime.now
-        self._time_updated = None
-        self._object_list = None
+        self._time_updated = datetime.now
+        self._object_list = []
         
     @property
     def name(self):
@@ -29,10 +29,19 @@ class Bucket:
 
         return self._time_updated
     
+    @time_updated.setter
+    def time_updated(self, time: datetime):
+
+        self._time_updated = time
+    
     @property
     def object_list(self):
 
         return self._object_list
+    
+    @object_list.setter
+    def object_list(self, new_obj: str):
+        self._object_list.append(new_obj)
     
     def delete(self):
         """Deletes the bucket"""

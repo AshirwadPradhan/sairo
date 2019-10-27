@@ -1,10 +1,10 @@
 from datetime import datetime
-class Object:
+class SairoObject:
 
     def __init__(self, object_key, bucket, file_bin, metadata):
 
         self._object_key = object_key
-        self._KIND = "storage#object"
+        self._KIND = 'storage#object'
         self._bucket = bucket
         self._version_id = None
         self._file_bin = file_bin
@@ -13,7 +13,6 @@ class Object:
         self._time_created = datetime.now
         self._time_deleted = None
         self._md5_hash = None
-        self._persist()
         self._self_link = None
     
     @property
@@ -82,8 +81,4 @@ class Object:
 
     def update_metadata(self, metadata):
         """Updates object metadata"""
-        pass
-    
-    def _persist(self):
-        """Persists the object in the disk"""
         pass
