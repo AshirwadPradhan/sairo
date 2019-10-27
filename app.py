@@ -10,8 +10,27 @@ from obs.system_metadata import SystemMetadata
 from obs.persist_handler import PersistBucketHandler
 from obs.persist_handler import PersistObjectHandler
 
-OBS_TMP_DIR = '/home/dominouzu/sairo/tmp'
+
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
+if not os.path.exists(OBS_BUCKET_DIR):
+    try:
+        cp = subprocess.run('mkdir '+OBS_BUCKET_DIR, shell=True, check=True)
+        if cp.returncode == 0:
+            print(f'{OBS_BUCKET_DIR} Bucket Created')
+    except subprocess.CalledProcessError as e:
+        print(e.stderr)
+
+
+OBS_TMP_DIR = '/home/dominouzu/sairo/tmp'
+if not os.path.exists(OBS_TMP_DIR):
+    try:
+        cp = subprocess.run('mkdir '+OBS_TMP_DIR, shell=True, check=True)
+        if cp.returncode == 0:
+            print(f'{OBS_TMP_DIR} Bucket Created')
+    except subprocess.CalledProcessError as e:
+        print(e.stderr)
+
+
 ALLOWED_EXTENSIONS = ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']
 
 app = Flask(__name__)
@@ -24,8 +43,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/bucket', methods=['GET', 'POST'])
-def bucket_create():
+@app.route('/createbucket', methods=['GET', 'POST'])
+def create_bucket():
 
     if request.method == 'POST':
 
@@ -72,7 +91,7 @@ def bucket_create():
     <!doctype html>
     <title> Create Bucket </title>
     <h1> Create New Bucket </h1>
-    <form method=post action='/bucket'>
+    <form method=post action='/createbucket'>
         <input type=text name=bucketName placeholder='Enter bucket name'>
         <input type=submit value=Create Bucket>
     </form>
@@ -87,8 +106,8 @@ def index():
 
 
 
-@app.route('/object', methods=['GET', 'POST'])
-def upload_file():
+@app.route('/createobject', methods=['GET', 'POST'])
+def create_object():
 
     if request.method == 'POST':
 
@@ -186,6 +205,71 @@ def upload_file():
 def uploaded_file(filename):
 
     return send_from_directory(app.config['OBS_TMP_DIR'], filename)
+
+
+@app.route('/deletebucket', methods=['GET', 'POST'])
+def delete_bucket():
+
+    if request.method == 'POST':
+        
+        bucket_name = str(request.form['bucketName'])
+        try:
+            cp = subprocess.run('rm -rf '+OBS_BUCKET_DIR+'/'+bucket_name, shell=True, check=True)
+            if cp.returncode == 0:
+                print(f'{bucket_name} Bucket Deleted')
+                flash(f'{bucket_name} Bucket Deleted')
+        
+        except subprocess.CalledProcessError as e:
+            print(e.stderr)
+            print(f'No such bucket {bucket_name} present to be deleted')
+        
+        return redirect(request.url)
+
+    
+    return ''' 
+    <!doctype html>
+    <title> Delete Bucket </title>
+    <h1> Delete A Bucket </h1>
+    <form method=post action='/deletebucket'>
+        <input type=text name=bucketName placeholder='Enter bucket name'>
+        <input type=submit value=Delete Bucket>
+    </form>
+    '''
+
+@app.route('/deleteobject', methods=['GET', 'POST'])
+def delete_object():
+
+    if request.method == 'POST':
+        
+        object_name = str(request.form['objectName'])
+        bucket_name = str(request.form['bucketName'])
+        try:
+            cp = subprocess.run('rm -rf '+OBS_BUCKET_DIR+'/'+bucket_name+'/'+object_name, 
+                shell=True, check=True)
+            if cp.returncode == 0:
+                print(f'{object_name} Object Deleted in bucket {bucket_name}')
+                flash(f'{bucket_name} Object Deleted in bucket {bucket_name}')
+        
+        except subprocess.CalledProcessError as e:
+            print(e.stderr)
+            print(f'No such object {object_name} present to be deleted')
+        
+        return redirect(request.url)
+
+    
+    return ''' 
+    <!doctype html>
+    <title> Delete Object </title>
+    <h1> Delete A Object </h1>
+    <form method=post action='/deleteobject'>
+        <input type=text name=bucketName placeholder='Enter bucket name'>
+        <p> </p>
+        <input type=text name=objectName placeholder='Enter object name'>
+        <input type=submit value=Delete Object>
+    </form>
+    '''
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
