@@ -1,11 +1,14 @@
 import os
 import subprocess
+import hashlib
 from flask import Flask, flash, request, redirect, url_for
 from flask import send_from_directory
 from werkzeug.utils import secure_filename
 from obs.sairo_bucket import SairoBucket
 from obs.sairo_objects import SairoObject
+from obs.system_metadata import SystemMetadata
 from obs.persist_handler import PersistBucketHandler
+from obs.persist_handler import PersistObjectHandler
 
 OBS_TMP_DIR = '/home/dominouzu/sairo/tmp'
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
@@ -28,15 +31,16 @@ def bucket_create():
 
         bucket_name = str(request.form['bucketName'])
         try:
-            returncode = subprocess.run('mkdir '+OBS_BUCKET_DIR+'/'+bucket_name, shell=True, check=True)
-            print(f'{bucket_name} Bucket Created')
-            flash(f'{bucket_name} Bucket Created')
+            cp = subprocess.run('mkdir '+OBS_BUCKET_DIR+'/'+bucket_name, shell=True, check=True)
+            if cp.returncode == 0:
+                print(f'{bucket_name} Bucket Created')
+                flash(f'{bucket_name} Bucket Created')
 
             #**************************************************
             ##Make this part asynchronous
             sairo_bucket_obj = SairoBucket(bucket_name)
             try:
-                
+
                 pbh = PersistBucketHandler(sairo_bucket_obj)
                 if pbh.persist():
                     print('Bucket Serialized...')
@@ -50,8 +54,8 @@ def bucket_create():
 
             return redirect(request.url)
 
-        except subprocess.CalledProcessError:
-
+        except subprocess.CalledProcessError as e:
+            print(e.output)
             print('Bucket Already Present')
             flash('Bucket Already Present')
 
@@ -104,8 +108,67 @@ def upload_file():
         if file and allowed_file(file.filename):
 
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['OBS_TEMP_DIR'], filename))
-            return redirect(url_for('uploaded_file', filename = filename))
+            bucket_name = str(request.form['bucketName'])
+            try:
+
+                save_path = os.path.join(app.config['OBS_TMP_DIR'], filename) 
+                file.save(save_path)
+                print(f'File {filename} saved...')
+
+                cp = subprocess.run('mkdir '+OBS_BUCKET_DIR+'/'+bucket_name+'/'+filename, shell=True, check=True)
+                if cp.returncode == 0:
+                    print(f'{filename} Object Initialized...')
+                    flash(f'{filename} Object Initialized')
+                
+                object_path = OBS_BUCKET_DIR+'/'+bucket_name+'/'+filename
+
+                #**********************************************************
+                #**Make this part aysnchronous
+                try:
+                    content_length = os.path.getsize(save_path)
+                except NotImplementedError:
+                    print('Unable to get content length.. Setting it to 0')
+                    content_length = 0
+                
+                hasher = hashlib.md5()
+                buf = None
+                with open(save_path, 'rb') as fh:
+                    buf = fh.read()
+                    hasher.update(buf)
+                
+                metadata = SystemMetadata(content_length, file.mimetype, hasher.hexdigest())
+
+                sairo_object_obj = SairoObject(filename, bucket_name, 
+                                buf, metadata, hasher.hexdigest())
+                
+                try:
+
+                    poh = PersistObjectHandler(sairo_object_obj)
+                    if poh.persist():
+                        print(f'Object {sairo_object_obj.object_key} Serialized...')
+                        flash('Bucket Saved')
+
+                except FileNotFoundError:
+
+                    print('Requested Bucket is not present')
+                    flash('Bucket Not Created Yet') 
+                
+                #***********************************************************
+
+                return redirect(url_for('uploaded_file', filename = filename))
+
+            except FileNotFoundError:
+                print(f'File Dest not found {filename}')
+
+                return redirect(request.url)
+            
+            except subprocess.CalledProcessError as e:
+                print(e.stdout)
+                print('Object Already Present')
+                flash('Object Already Present')
+
+                return redirect(request.url)
+
     
     return ''' 
     <!doctype html>
@@ -122,7 +185,7 @@ def upload_file():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
 
-    return send_from_directory(app.config['OBS_TEMP_DIR'], filename)
+    return send_from_directory(app.config['OBS_TMP_DIR'], filename)
 
 if __name__ == "__main__":
     app.run(debug=True)

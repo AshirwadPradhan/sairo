@@ -17,13 +17,12 @@ class ObjectSerializer:
 
             bucket_name = sairo_object.bucket
             object_name = sairo_object.object_key
-            object_version = sairo_object.version_id
-            serial_dir = OBS_BUCKET_DIR+'/'+bucket_name+'/'+object_name
-            serial_file = serial_dir+'/'+object_name+object_version+'.pk'
+            serial_file = sairo_object.self_link
 
             try:
 
                 with open(serial_file, 'wb') as file_handler:
+                    print(f'Serializing {object_name} to {serial_file}...')
                     pickle.dump(sairo_object, file_handler)
                 
                 return True
