@@ -7,7 +7,7 @@ class SairoBucket:
         self._KIND = "storage#bucket"
         self._time_created = datetime.now
         self._time_updated = datetime.now
-        self._object_list = []
+        self._object_list = {}
         
     @property
     def name(self):
@@ -41,7 +41,9 @@ class SairoBucket:
     
     @object_list.setter
     def object_list(self, new_obj: str):
-        self._object_list.append(new_obj)
+        if new_obj not in self._object_list:
+            self._object_list[new_obj] = new_obj
+            print(f'Adding {new_obj} to the {self._name} buckets object list')
     
     def delete(self):
         """Deletes the bucket"""
