@@ -1,0 +1,9 @@
+<h1> Sairo </h1>
+
+<div>
+    <ul>
+        {% for bucket in buckets %}
+        <li> <a href="/buckets/{{bucket}}"> {{ bucket }} </a>  </li>
+        {% endfor %}
+    </ul>
+</div>
