@@ -10,6 +10,8 @@ from sairo_objects import SairoObject
 from system_metadata import SystemMetadata
 from persist_handler import PersistBucketHandler
 from persist_handler import PersistObjectHandler
+import base64
+import simplejson as json
 
 
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
@@ -252,10 +254,19 @@ def create_object():
     </form>
     '''
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
+# @app.route('/uploads/<filename>')
+# def uploaded_file(filename):
 
-    return send_from_directory(app.config['OBS_TMPOBJ_DIR'], filename)
+#     return send_from_directory(app.config['OBS_TMPOBJ_DIR'], filename)
+
+
+def get_uploaded_file(filename):
+    payload = None
+    with open(app.config['OBS_TMPOBJ_DIR']+"/"+filename, 'rb') as fh:
+        payload = fh.read()
+    return payload
+
+
 
 @app.route('/getobject', methods=['GET', 'POST'])
 def get_object():
@@ -274,7 +285,8 @@ def get_object():
         f.write(sairo_object.file_bin)
         f.close()
         #*******************************************************************
-        return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
+        return get_uploaded_file(sairo_object.object_key)
+        # return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
 
     return ''' 
         <!doctype html>
