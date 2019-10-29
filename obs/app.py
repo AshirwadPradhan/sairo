@@ -2,13 +2,14 @@ import os
 import subprocess
 import hashlib
 from flask import Flask, flash, request, redirect, url_for
+from flask import jsonify
 from flask import send_from_directory
 from werkzeug.utils import secure_filename
-from obs.sairo_bucket import SairoBucket
-from obs.sairo_objects import SairoObject
-from obs.system_metadata import SystemMetadata
-from obs.persist_handler import PersistBucketHandler
-from obs.persist_handler import PersistObjectHandler
+from sairo_bucket import SairoBucket
+from sairo_objects import SairoObject
+from system_metadata import SystemMetadata
+from persist_handler import PersistBucketHandler
+from persist_handler import PersistObjectHandler
 
 
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
@@ -70,8 +71,8 @@ def create_bucket():
             sairo_bucket_obj = SairoBucket(bucket_name)
             try:
 
-                pbh = PersistBucketHandler(sairo_bucket_obj)
-                if pbh.persist():
+                pbh = PersistBucketHandler()
+                if pbh.persist(sairo_bucket_obj):
                     print('Bucket Serialized...')
                     flash('Bucket Saved')
 
@@ -107,6 +108,44 @@ def create_bucket():
     </form>
     '''
 
+@app.route('/getobjectlist', methods=['GET', 'POST'])
+def get_object_list():
+
+    if request.method == 'POST':
+
+        bucket_name = str(request.form['bucketName'])
+ 
+        #**************************************************************
+        ##Make this part asynchronous
+        bucket_path = os.path.join(OBS_BUCKET_DIR,bucket_name)
+        bucket_ser_path = os.path.join(bucket_path, bucket_name+'.pk')
+
+        pbh = PersistBucketHandler()
+        buck_obj: SairoBucket = pbh.read(bucket_ser_path)
+
+        print(buck_obj.object_list) #this is the var for all the object list
+        #**************************************************************
+        # return redirect(request.url)
+        return jsonify(buck_obj.object_list), 200
+
+    return ''' 
+    <!doctype html>
+    <title> Get Object List </title>
+    <h1> Get Object List </h1>
+    <form method=post action='/getobjectlist'>
+        <input type=text name=bucketName placeholder='Enter bucket name'>
+        <input type=submit value=Get Bucket List>
+    </form>
+    '''
+
+@app.route('/getbucketlist', methods=['GET', 'POST'])
+def get_bucket_list():
+    
+    bucket_list: list() = os.listdir(OBS_BUCKET_DIR)
+    bucket_list.remove('tmp')
+    bucket_list.remove('tmpobj')
+
+    return jsonify(bucket_list), 200
 
 
 @app.route('/')
