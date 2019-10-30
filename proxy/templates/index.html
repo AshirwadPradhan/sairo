@@ -3,7 +3,10 @@
 <div>
     <ul>
         {% for bucket in buckets %}
-        <li> <a href="/buckets/{{bucket}}"> {{ bucket }} </a>  </li>
+        <li> <a href="{{ url_for('get_objectlist', bucketName=bucket) }}"> {{ bucket }} </a> &nbsp;&nbsp; <a href=" {{ url_for('delete_bucket', bucketName= bucket)}} "> delete </a> </li>
         {% endfor %}
     </ul>
+</div>
+<div>
+    <a href="{{ url_for('create_bucket') }} ">  Create Bucket </a>
 </div>

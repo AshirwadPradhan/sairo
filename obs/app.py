@@ -100,15 +100,16 @@ def create_bucket():
 
             return redirect(request.url)
 
-    return ''' 
-    <!doctype html>
-    <title> Create Bucket </title>
-    <h1> Create New Bucket </h1>
-    <form method=post action='/createbucket'>
-        <input type=text name=bucketName placeholder='Enter bucket name'>
-        <input type=submit value=Create Bucket>
-    </form>
-    '''
+    return "ok"
+    # return '''
+    # <!doctype html>
+    # <title> Create Bucket </title>
+    # <h1> Create New Bucket </h1>
+    # <form method=post action='/createbucket'>
+    #     <input type=text name=bucketName placeholder='Enter bucket name'>
+    #     <input type=submit value=Create Bucket>
+    # </form>
+    # '''
 
 @app.route('/getobjectlist', methods=['GET', 'POST'])
 def get_object_list():
@@ -130,15 +131,15 @@ def get_object_list():
         # return redirect(request.url)
         return jsonify(buck_obj.object_list), 200
 
-    return ''' 
-    <!doctype html>
-    <title> Get Object List </title>
-    <h1> Get Object List </h1>
-    <form method=post action='/getobjectlist'>
-        <input type=text name=bucketName placeholder='Enter bucket name'>
-        <input type=submit value=Get Bucket List>
-    </form>
-    '''
+    # return '''
+    # <!doctype html>
+    # <title> Get Object List </title>
+    # <h1> Get Object List </h1>
+    # <form method=post action='/getobjectlist'>
+    #     <input type=text name=bucketName placeholder='Enter bucket name'>
+    #     <input type=submit value=Get Bucket List>
+    # </form>
+    # '''
 
 @app.route('/getbucketlist', methods=['GET', 'POST'])
 def get_bucket_list():
@@ -317,10 +318,11 @@ def delete_bucket():
             print(e.stderr)
             print(f'No such bucket {bucket_name} present to be deleted')
         
-        return redirect(request.url)
+        return "ok"
+        # return redirect(request.url)
 
     
-    return ''' 
+    return '''
     <!doctype html>
     <title> Delete Bucket </title>
     <h1> Delete A Bucket </h1>
@@ -348,10 +350,10 @@ def delete_object():
             print(e.stderr)
             print(f'No such object {object_name} present to be deleted')
         
-        return redirect(request.url)
+        return "ok"
 
     
-    return ''' 
+    return '''
     <!doctype html>
     <title> Delete Object </title>
     <h1> Delete A Object </h1>
