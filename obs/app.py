@@ -10,6 +10,8 @@ from sairo_objects import SairoObject
 from system_metadata import SystemMetadata
 from persist_handler import PersistBucketHandler
 from persist_handler import PersistObjectHandler
+import base64
+import simplejson as json
 
 
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
@@ -98,15 +100,16 @@ def create_bucket():
 
             return redirect(request.url)
 
-    return ''' 
-    <!doctype html>
-    <title> Create Bucket </title>
-    <h1> Create New Bucket </h1>
-    <form method=post action='/createbucket'>
-        <input type=text name=bucketName placeholder='Enter bucket name'>
-        <input type=submit value=Create Bucket>
-    </form>
-    '''
+    return "ok"
+    # return '''
+    # <!doctype html>
+    # <title> Create Bucket </title>
+    # <h1> Create New Bucket </h1>
+    # <form method=post action='/createbucket'>
+    #     <input type=text name=bucketName placeholder='Enter bucket name'>
+    #     <input type=submit value=Create Bucket>
+    # </form>
+    # '''
 
 @app.route('/getobjectlist', methods=['GET', 'POST'])
 def get_object_list():
@@ -128,15 +131,15 @@ def get_object_list():
         # return redirect(request.url)
         return jsonify(buck_obj.object_list), 200
 
-    return ''' 
-    <!doctype html>
-    <title> Get Object List </title>
-    <h1> Get Object List </h1>
-    <form method=post action='/getobjectlist'>
-        <input type=text name=bucketName placeholder='Enter bucket name'>
-        <input type=submit value=Get Bucket List>
-    </form>
-    '''
+    # return '''
+    # <!doctype html>
+    # <title> Get Object List </title>
+    # <h1> Get Object List </h1>
+    # <form method=post action='/getobjectlist'>
+    #     <input type=text name=bucketName placeholder='Enter bucket name'>
+    #     <input type=submit value=Get Bucket List>
+    # </form>
+    # '''
 
 @app.route('/getbucketlist', methods=['GET', 'POST'])
 def get_bucket_list():
@@ -252,10 +255,19 @@ def create_object():
     </form>
     '''
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
+# @app.route('/uploads/<filename>')
+# def uploaded_file(filename):
 
-    return send_from_directory(app.config['OBS_TMPOBJ_DIR'], filename)
+#     return send_from_directory(app.config['OBS_TMPOBJ_DIR'], filename)
+
+
+def get_uploaded_file(filename):
+    payload = None
+    with open(app.config['OBS_TMPOBJ_DIR']+"/"+filename, 'rb') as fh:
+        payload = fh.read()
+    return payload
+
+
 
 @app.route('/getobject', methods=['GET', 'POST'])
 def get_object():
@@ -274,7 +286,8 @@ def get_object():
         f.write(sairo_object.file_bin)
         f.close()
         #*******************************************************************
-        return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
+        return get_uploaded_file(sairo_object.object_key)
+        # return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
 
     return ''' 
         <!doctype html>
@@ -305,10 +318,11 @@ def delete_bucket():
             print(e.stderr)
             print(f'No such bucket {bucket_name} present to be deleted')
         
-        return redirect(request.url)
+        return "ok"
+        # return redirect(request.url)
 
     
-    return ''' 
+    return '''
     <!doctype html>
     <title> Delete Bucket </title>
     <h1> Delete A Bucket </h1>
@@ -336,10 +350,10 @@ def delete_object():
             print(e.stderr)
             print(f'No such object {object_name} present to be deleted')
         
-        return redirect(request.url)
+        return "ok"
 
     
-    return ''' 
+    return '''
     <!doctype html>
     <title> Delete Object </title>
     <h1> Delete A Object </h1>
