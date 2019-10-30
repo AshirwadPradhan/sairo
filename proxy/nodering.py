@@ -15,20 +15,25 @@ class NodeRing:
         
         self._nodes: list = cluster_nodes
 
-    def get_node(self, bucket_name: str) -> str:
+    def get_nodes(self, bucket_name: str) -> str:
 
         hash_ring = HashRing(self._nodes)
-        target_node = hash_ring.get(bucket_name)
+        member_nodes = []
 
-        return target_node['hostname']
+        for _ in range(0,3):
+            target_node = hash_ring.get(bucket_name)['hostname']
+            member_nodes.append(target_node)
+            hash_ring.remove_node(target_node)
+
+        return member_nodes
 
 
 if __name__ == '__main__':
 
     nr = NodeRing()
-    print(nr.get_node('truouiyuuibe'))
-    print(nr.get_node('trvevergibe'))
-    print(nr.get_node('triergegbe'))
-    print(nr.get_node('tribyjykyke'))
-    print(nr.get_node('tribmbbmbme'))
-    print(nr.get_node('trizczzcvbe'))
+    print(nr.get_nodes('truouiyuuibe'))
+    print(nr.get_nodes('trvevergibe'))
+    print(nr.get_nodes('triergegbe'))
+    print(nr.get_nodes('tribyjykyke'))
+    print(nr.get_nodes('tribmbbmbme'))
+    print(nr.get_nodes('trizczzcvbe'))
