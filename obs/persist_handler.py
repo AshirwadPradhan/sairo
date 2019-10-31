@@ -1,20 +1,21 @@
 import os
-from obs.persist.serializer import BucketSerializer
-from obs.persist.serializer import ObjectSerializer
-from obs.sairo_bucket import SairoBucket
-from obs.sairo_objects import SairoObject
+from persist.serializer import BucketSerializer
+from persist.serializer import ObjectSerializer
+from sairo_bucket import SairoBucket
+from sairo_objects import SairoObject
 
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
 
 class PersistBucketHandler:
 
-    def __init__(self, bucket_object: SairoBucket):
+    def __init__(self):
 
-        self._bhobj = bucket_object
+        self._bhobj = None
     
-    def persist(self) -> bool:
+    def persist(self, sairo_bucket: SairoBucket) -> bool:
 
         bs = BucketSerializer()
+        self._bhobj = sairo_bucket
 
         try:
 
@@ -37,9 +38,9 @@ class PersistObjectHandler:
     def __init__(self):
         self._ohobj = None
     
-    def persist(self, sairo_object) -> bool:
+    def persist(self, sairo_object: SairoObject) -> bool:
 
-        self._ohobj = sairo_object
+        self._ohobj: SairoObject = sairo_object
 
         self._ohobj.version_id = self.determine_version()
         object_path = os.path.join(OBS_BUCKET_DIR, self._ohobj.bucket, self._ohobj.object_key)
@@ -47,7 +48,21 @@ class PersistObjectHandler:
                                 self._ohobj.object_key+str(self._ohobj.version_id)+'.pk')        
 
         objs = ObjectSerializer()
+        bucks = BucketSerializer()
+
         if objs.serialize(self._ohobj):
+
+            bucket_path = os.path.join('/home/dominouzu/sairo',sairo_object.bucket)
+            buck_ser_path = os.path.join(bucket_path, sairo_object.bucket+'.pk')
+            print(f'Reading bucket {buck_ser_path}....')
+            bucket_obj: SairoBucket = bucks.deserialize(buck_ser_path)
+            bucket_obj.object_list = self._ohobj.object_key
+
+            if bucks.serialize(bucket_obj):
+                print(f'Bucket {bucket_obj.name} updated with {self._ohobj.object_key}')
+            else:
+                print(f'ERROR:Bucket {bucket_obj.name} CANNOT be updated with {self._ohobj.object_key}')
+
             return True
         else:
             return False

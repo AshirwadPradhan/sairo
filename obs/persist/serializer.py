@@ -1,7 +1,7 @@
 import pickle
 import os
-from obs.sairo_bucket import SairoBucket
-from obs.sairo_objects import SairoObject
+from sairo_bucket import SairoBucket
+from sairo_objects import SairoObject
 
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
 
@@ -104,7 +104,6 @@ class BucketSerializer:
         '''
         @params sairo_bucket : complete path to bucket pickle file
         '''
-
         try:
             with open(sairo_bucket, 'rb') as file_handler:
                 sairo_object = pickle.load(file_handler)

@@ -1,0 +1,16 @@
+<h1> Sairo </h1>
+
+<div>
+    <ul>
+        {% for key, val in objects.items() %}
+        <li> <a href="/{{ bucketName }}/{{val}}"> {{ val }} </a>  &nbsp;&nbsp; <a href=" {{ url_for('delete_object', bucketName= bucketName, objectName=val)}} "> delete </a>  </li>
+        {% endfor %}
+    </ul>
+</div>
+<div>
+    <!-- <a href="/createobject/{{bucketName}}"> Create Object </a> -->
+    <a href="{{ url_for('create_object', bucketName=bucketName) }}"> Create Object </a>
+</div>
+<div>
+    <a href="{{ url_for('index') }}"> All Buckets </a>
+</div>

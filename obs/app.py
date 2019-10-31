@@ -2,13 +2,16 @@ import os
 import subprocess
 import hashlib
 from flask import Flask, flash, request, redirect, url_for
+from flask import jsonify
 from flask import send_from_directory
 from werkzeug.utils import secure_filename
-from obs.sairo_bucket import SairoBucket
-from obs.sairo_objects import SairoObject
-from obs.system_metadata import SystemMetadata
-from obs.persist_handler import PersistBucketHandler
-from obs.persist_handler import PersistObjectHandler
+from sairo_bucket import SairoBucket
+from sairo_objects import SairoObject
+from system_metadata import SystemMetadata
+from persist_handler import PersistBucketHandler
+from persist_handler import PersistObjectHandler
+import base64
+import simplejson as json
 
 
 OBS_BUCKET_DIR = '/home/dominouzu/sairo'
@@ -70,8 +73,8 @@ def create_bucket():
             sairo_bucket_obj = SairoBucket(bucket_name)
             try:
 
-                pbh = PersistBucketHandler(sairo_bucket_obj)
-                if pbh.persist():
+                pbh = PersistBucketHandler()
+                if pbh.persist(sairo_bucket_obj):
                     print('Bucket Serialized...')
                     flash('Bucket Saved')
 
@@ -97,16 +100,55 @@ def create_bucket():
 
             return redirect(request.url)
 
-    return ''' 
-    <!doctype html>
-    <title> Create Bucket </title>
-    <h1> Create New Bucket </h1>
-    <form method=post action='/createbucket'>
-        <input type=text name=bucketName placeholder='Enter bucket name'>
-        <input type=submit value=Create Bucket>
-    </form>
-    '''
+    return "ok"
+    # return '''
+    # <!doctype html>
+    # <title> Create Bucket </title>
+    # <h1> Create New Bucket </h1>
+    # <form method=post action='/createbucket'>
+    #     <input type=text name=bucketName placeholder='Enter bucket name'>
+    #     <input type=submit value=Create Bucket>
+    # </form>
+    # '''
 
+@app.route('/getobjectlist', methods=['GET', 'POST'])
+def get_object_list():
+
+    if request.method == 'POST':
+
+        bucket_name = str(request.form['bucketName'])
+ 
+        #**************************************************************
+        ##Make this part asynchronous
+        bucket_path = os.path.join(OBS_BUCKET_DIR,bucket_name)
+        bucket_ser_path = os.path.join(bucket_path, bucket_name+'.pk')
+
+        pbh = PersistBucketHandler()
+        buck_obj: SairoBucket = pbh.read(bucket_ser_path)
+
+        print(buck_obj.object_list) #this is the var for all the object list
+        #**************************************************************
+        # return redirect(request.url)
+        return jsonify(buck_obj.object_list), 200
+
+    # return '''
+    # <!doctype html>
+    # <title> Get Object List </title>
+    # <h1> Get Object List </h1>
+    # <form method=post action='/getobjectlist'>
+    #     <input type=text name=bucketName placeholder='Enter bucket name'>
+    #     <input type=submit value=Get Bucket List>
+    # </form>
+    # '''
+
+@app.route('/getbucketlist', methods=['GET'])
+def get_bucket_list():
+    
+    bucket_list: list() = os.listdir(OBS_BUCKET_DIR)
+    bucket_list.remove('tmp')
+    bucket_list.remove('tmpobj')
+
+    return jsonify(bucket_list), 200
 
 
 @app.route('/')
@@ -213,10 +255,19 @@ def create_object():
     </form>
     '''
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
+# @app.route('/uploads/<filename>')
+# def uploaded_file(filename):
 
-    return send_from_directory(app.config['OBS_TMPOBJ_DIR'], filename)
+#     return send_from_directory(app.config['OBS_TMPOBJ_DIR'], filename)
+
+
+def get_uploaded_file(filename):
+    payload = None
+    with open(app.config['OBS_TMPOBJ_DIR']+"/"+filename, 'rb') as fh:
+        payload = fh.read()
+    return payload
+
+
 
 @app.route('/getobject', methods=['GET', 'POST'])
 def get_object():
@@ -229,13 +280,14 @@ def get_object():
         #******************************************************************
         #**Make this async
         ph = PersistObjectHandler()
-        sairo_object = ph.read(os.path.join(OBS_BUCKET_DIR, bucket_name, object_name), 
+        sairo_object: SairoObject = ph.read(os.path.join(OBS_BUCKET_DIR, bucket_name, object_name), 
                         object_name)
         f = open(OBS_TMPOBJ_DIR+'/'+sairo_object.object_key, 'wb')
         f.write(sairo_object.file_bin)
         f.close()
         #*******************************************************************
-        return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
+        return get_uploaded_file(sairo_object.object_key)
+        # return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
 
     return ''' 
         <!doctype html>
@@ -266,10 +318,11 @@ def delete_bucket():
             print(e.stderr)
             print(f'No such bucket {bucket_name} present to be deleted')
         
-        return redirect(request.url)
+        return "ok"
+        # return redirect(request.url)
 
     
-    return ''' 
+    return '''
     <!doctype html>
     <title> Delete Bucket </title>
     <h1> Delete A Bucket </h1>
@@ -290,6 +343,23 @@ def delete_object():
             cp = subprocess.run('rm -rf '+OBS_BUCKET_DIR+'/'+bucket_name+'/'+object_name, 
                 shell=True, check=True)
             if cp.returncode == 0:
+
+                bucket_path = os.path.join(OBS_BUCKET_DIR, bucket_name)
+                bucket_ser_path = os.path.join(bucket_path, bucket_name+'.pk')
+                pbh = PersistBucketHandler()
+                sairo_bucket_obj: SairoBucket = pbh.read(bucket_ser_path)
+                sairo_bucket_obj.del_object_list(object_name)
+                try:
+
+                    if pbh.persist(sairo_bucket_obj):
+                        print(f'Bucket Serialized after removing object {object_name}...')
+                        flash(f'Bucket Saved')
+
+                except FileNotFoundError:
+
+                    print(f'Requested Bucket {bucket_name} is not present')
+                    flash('Bucket Not Created Yet') 
+                    
                 print(f'{object_name} Object Deleted in bucket {bucket_name}')
                 flash(f'{bucket_name} Object Deleted in bucket {bucket_name}')
         
@@ -297,10 +367,10 @@ def delete_object():
             print(e.stderr)
             print(f'No such object {object_name} present to be deleted')
         
-        return redirect(request.url)
+        return "ok"
 
     
-    return ''' 
+    return '''
     <!doctype html>
     <title> Delete Object </title>
     <h1> Delete A Object </h1>
@@ -315,4 +385,4 @@ def delete_object():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
