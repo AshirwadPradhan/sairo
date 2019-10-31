@@ -104,7 +104,6 @@ class BucketSerializer:
         '''
         @params sairo_bucket : complete path to bucket pickle file
         '''
-
         try:
             with open(sairo_bucket, 'rb') as file_handler:
                 sairo_object = pickle.load(file_handler)

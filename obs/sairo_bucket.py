@@ -41,9 +41,17 @@ class SairoBucket:
     
     @object_list.setter
     def object_list(self, new_obj: str):
+
         if new_obj not in self._object_list:
             self._object_list[new_obj] = new_obj
             print(f'Adding {new_obj} to the {self._name} buckets object list')
+    
+    def del_object_list(self, obj: str):
+
+        if obj in self._object_list:
+            self._object_list.pop(obj)
+            print(f'Deleting {obj} from the {self._name} buckets object list')
+
     
     def delete(self):
         """Deletes the bucket"""
