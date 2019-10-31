@@ -5,6 +5,7 @@ import json
 import os
 from nodering import NodeRing, ClusterNodes
 import subprocess
+import hashlib
 
 
 app = Flask(__name__)
@@ -63,15 +64,34 @@ def uploads(bucketName, fileName):
     nr = NodeRing()
     nodes = nr.get_nodes(bucketName)
     print(nodes)
-    for node in nodes:
+
+    hasher = hashlib.md5()
+    contents = set()
+
+    for i, node in enumerate(nodes):
         r = requests.post('http://'+ node +':5000/getobject', data={'bucketName' :bucketName, 'objectName': fileName})
-    if 'txt' in fileName:
-        with open(os.path.join(app.config['OBS_TMP_OP_DIR'], fileName), 'w') as f:
-            f.write(r.text)
+        if 'txt' in fileName:
+            with open(os.path.join(app.config['OBS_TMP_OP_DIR'], str(i) + fileName), 'w') as f:
+                f.write(r.text)
+            with open(os.path.join(app.config['OBS_TMP_OP_DIR'], str(i) + fileName) , 'r') as fh:
+                buf = fh.read()
+                hasher.update(buf.encode())
+                contents.add(str(hasher.hexdigest()))
+                print('================added from node ' + node)
+        else:
+            with open(os.path.join(app.config['OBS_TMP_OP_DIR'], str(i) + fileName), 'wb') as f:
+                f.write(r.content)
+            with open(os.path.join(app.config['OBS_TMP_OP_DIR'], str(i) + fileName), 'rb') as fh:
+                buf = fh.read()
+                hasher.update(buf)
+                contents.add(str(hasher.hexdigest()))
+                print("=================added from node " + node)
+
+    if len(contents) > 1:
+        print('Conflict !!!!')
+        # TODO: add code for read reconcilation
     else:
-        with open(os.path.join(app.config['OBS_TMP_OP_DIR'], fileName), 'wb') as f:
-            f.write(r.content)
-    return send_from_directory(app.config['OBS_TMP_OP_DIR'], fileName)
+        return send_from_directory(app.config['OBS_TMP_OP_DIR'], '0' + fileName)
 
 
 
