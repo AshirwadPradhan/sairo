@@ -23,17 +23,26 @@ class NodeRing:
         cluster_nodes: list = ClusterNodes.get_cluster_nodes()
         self._nodes: list = cluster_nodes
 
-    def get_nodes(self, bucket_name: str) -> str:
+    def get_nodes(self, bucket_name: str) -> dict:
 
         hash_ring = HashRing(self._nodes)
-        member_nodes = []
+        _cp_hr = hash_ring
+        replica_nodes = {'member_nodes':[],
+                        'backup_nodes':[]}
 
         for _ in range(0,3):
-            target_node = hash_ring.get(bucket_name)['hostname']
-            member_nodes.append(target_node)
-            hash_ring.remove_node(target_node)
+            target_node = _cp_hr.get(bucket_name)['hostname']
+            replica_nodes['member_nodes'].append(target_node)
+            _cp_hr.remove_node(target_node)
+        
+        for _ in range(0,2):
+            #works only for 5 node cluster
+            #assumption is that the 1st node of the member nodes is always reachable.
+            target_node = _cp_hr.get(bucket_name)['hostname']
+            replica_nodes['backup_nodes'].append(target_node)
+            _cp_hr.remove_node(target_node)
 
-        return member_nodes
+        return replica_nodes
 
 
 if __name__ == '__main__':

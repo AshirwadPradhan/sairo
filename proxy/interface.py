@@ -7,7 +7,6 @@ from nodering import NodeRing, ClusterNodes
 import subprocess
 import hashlib
 
-
 app = Flask(__name__)
 
 OBS_TMP_OP_DIR = '/home/sairo/tmpmaster'
@@ -43,7 +42,19 @@ def index():
     return render_template('index.html', buckets=buckets)
     # return '<h1> Hello Sairo </h1>'
 
+@app.route('/deleteallbuckets', methods=['POST'])
+def delete_all_buckets():
 
+    if request.method == 'POST':
+        data = str(request.form['delAll'])
+        if data == 'true':
+            cluster_nodes = ClusterNodes.get_cluster_nodes()
+            for node in cluster_nodes:
+                r = requests.delete('http://'+ node +'5000:/deleteallbuckets')
+        
+            return "OK", 200
+    
+    return "METHOD NOT ALLOWED", 405
 
 @app.route('/<bucketName>')
 def get_objectlist(bucketName):

@@ -332,6 +332,28 @@ def delete_bucket():
     </form>
     '''
 
+@app.route('/deleteallbuckets', methods=['DELETE'])
+def delete_all_buckets():
+    
+    if request.method == 'DELETE':
+
+        try:
+            cp = subprocess.run('rm -rf '+ OBS_BUCKET_DIR +'/*', shell=True, check=True)
+            if cp.returncode == 0:
+                print(f'All Bucket Deleted')
+                flash(f'All Bucket Deleted')
+        
+        except subprocess.CalledProcessError as e:
+            print(e.stderr)
+            print(f' Buckets not deleted')
+
+            return "ERROR", 404
+        
+        return "OK", 200
+    
+    return "METHOD NOT ALLOWED", 405
+
+
 @app.route('/deleteobject', methods=['GET', 'POST'])
 def delete_object():
 
