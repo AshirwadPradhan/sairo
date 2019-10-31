@@ -3,7 +3,7 @@ from flask import Flask, flash, request, redirect, url_for, render_template, sen
 import requests
 import json
 import os
-from nodering import NodeRing
+from nodering import NodeRing, ClusterNodes
 import subprocess
 
 
@@ -20,12 +20,25 @@ if not os.path.exists(OBS_TMP_OP_DIR):
         print(e.stderr)
 
 
+def get_all_buckets():
+    cluster_nodes = ClusterNodes.get_cluster_nodes()
+    buckets = []
+    for node in cluster_nodes:
+        r =  requests.get('http://'+ node +':5000/getbucketlist')
+        buckets.extend(json.loads(r.text))
+    print(buckets)
+    all_buckets = list(set(buckets))
+    return all_buckets
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    r =  requests.get('http://localhost:5000/getbucketlist')
+    # r =  requests.get('http://localhost:5000/getbucketlist')
     # print(json.loads(r.text))
-    buckets = json.loads(r.text)
+    # buckets = json.loads(r.text)
+    buckets = get_all_buckets()
+    buckets.sort()
     return render_template('index.html', buckets=buckets)
     # return '<h1> Hello Sairo </h1>'
 
@@ -37,15 +50,21 @@ def get_objectlist(bucketName):
     nr = NodeRing()
     nodes = nr.get_nodes(bucketName)
     print(nodes)
-    r = requests.post('http://'+ nodes[0] +':5000/getobjectlist', data={'bucketName' :bucketName})
-    bucket_objects = json.loads(r.text)
+    bucket_objects = {}
+    for node in nodes:
+        r = requests.post('http://'+ node +':5000/getobjectlist', data={'bucketName' :bucketName})
+        bucket_objects.update(json.loads(r.text))
     return render_template('objects.html', objects=bucket_objects, bucketName=bucketName)
 
 
 
 @app.route('/<bucketName>/<fileName>')
 def uploads(bucketName, fileName):
-    r = requests.post('http://localhost:5000/getobject', data={'bucketName' :bucketName, 'objectName': fileName})
+    nr = NodeRing()
+    nodes = nr.get_nodes(bucketName)
+    print(nodes)
+    for node in nodes:
+        r = requests.post('http://'+ node +':5000/getobject', data={'bucketName' :bucketName, 'objectName': fileName})
     if 'txt' in fileName:
         with open(os.path.join(app.config['OBS_TMP_OP_DIR'], fileName), 'w') as f:
             f.write(r.text)
@@ -63,10 +82,12 @@ def create_bucket():
         nr = NodeRing()
         nodes = nr.get_nodes(bucket_name)
         print(nodes)
-        for node in nodes[:1]:
+        for node in nodes:
             r = requests.post('http://'+ node + ':5000/createbucket', data={'bucketName' : bucket_name })
-            if r.status_code!= 200:
+            if r.status_code  != 200:
                 print('start hinted handoff')
+            else:
+                print("created bucket in " + node)
         # print(r.text)
         return redirect(url_for('index'))
 
@@ -83,8 +104,10 @@ def create_object(bucketName):
         f.seek(0)
         sendFile = {"file": (f.filename, f.stream, f.mimetype)}
 
-        r = requests.post("http://localhost:5000/createobject", files=sendFile, data={'bucketName': bucketName})
-
+        nr = NodeRing()
+        nodes = nr.get_nodes(bucketName)
+        for node in nodes:
+            r = requests.post("http://"+ node +":5000/createobject", files=sendFile, data={'bucketName': bucketName})
         return redirect(url_for('get_objectlist', bucketName=bucketName))
     return render_template('createobject.html')
 
@@ -92,7 +115,13 @@ def create_object(bucketName):
 @app.route('/deletebucket/<bucketName>', methods=['GET', 'POST'])
 def delete_bucket(bucketName):
     # if request.method == 'POST':
-    r = requests.post("http://localhost:5000/deletebucket", data={'bucketName': bucketName})
+    nr = NodeRing()
+    nodes = nr.get_nodes(bucketName)
+    print(nodes)
+    for node in nodes:
+        r = requests.post('http://'+ node +':5000/deletebucket', data={'bucketName': bucketName})
+        if r.status_code == 200:
+            print("============================== deleted from" + node + "===================================")
     return redirect(url_for('index'))
 
 
@@ -101,7 +130,11 @@ def delete_object(bucketName, objectName):
     # if request.method == 'POST':
     print(bucketName)
     print(objectName)
-    r = requests.post("http://localhost:5000/deleteobject", data={'bucketName': bucketName, 'objectName': objectName})
+    nr = NodeRing()
+    nodes = nr.get_nodes(bucketName)
+    print(nodes)
+    for node in nodes:
+        r = requests.post("http://"+ node +":5000/deleteobject", data={'bucketName': bucketName, 'objectName': objectName})
     return redirect(url_for('get_objectlist', bucketName=bucketName))
 
 
