@@ -3,12 +3,20 @@ from flask import Flask, flash, request, redirect, url_for, render_template, sen
 import requests
 import json
 import os
+import subprocess
 
 
 app = Flask(__name__)
 
-OBS_TMP_OP_DIR = '//home/sairo/tmpmaster'
+OBS_TMP_OP_DIR = '/home/sairo/tmpmaster'
 app.config['OBS_TMP_OP_DIR'] = OBS_TMP_OP_DIR
+if not os.path.exists(OBS_TMP_OP_DIR):
+    try:
+        cp = subprocess.run('mkdir '+OBS_TMP_OP_DIR, shell=True, check=True)
+        if cp.returncode == 0:
+            print(f'{OBS_TMP_OP_DIR} Bucket Directory Created')
+    except subprocess.CalledProcessError as e:
+        print(e.stderr)
 
 
 
