@@ -1,6 +1,17 @@
 from uhashring import HashRing
 import yaml
 
+class ClusterNodes:
+
+    @staticmethod
+    def get_cluster_nodes() -> list:
+        cluster_nodes: list = []
+
+        with open('clusterconfig.yaml', 'r') as file_handle:
+            cluster_nodes = yaml.load(file_handle, Loader=yaml.FullLoader)
+        
+        return cluster_nodes
+
 class NodeRing:
 
     def __init__(self):
@@ -8,11 +19,8 @@ class NodeRing:
         self._load_cluster_nodes()
 
     def _load_cluster_nodes(self):
-        cluster_nodes: list = []
 
-        with open('clusterconfig.yaml', 'r') as file_handle:
-            cluster_nodes = yaml.load(file_handle, Loader=yaml.FullLoader)
-        
+        cluster_nodes: list = ClusterNodes.get_cluster_nodes()
         self._nodes: list = cluster_nodes
 
     def get_nodes(self, bucket_name: str) -> str:
