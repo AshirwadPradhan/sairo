@@ -3,9 +3,8 @@ from flask import Flask, flash, request, redirect, url_for, render_template, sen
 import requests
 import json
 import os
-from nodering import NodeRing
+from nodering import NodeRing, ClusterNodes
 import subprocess
-
 
 app = Flask(__name__)
 
@@ -29,7 +28,19 @@ def index():
     return render_template('index.html', buckets=buckets)
     # return '<h1> Hello Sairo </h1>'
 
+@app.route('/deleteallbuckets', methods=['POST'])
+def delete_all_buckets():
 
+    if request.method == 'POST':
+        data = str(request.form['delAll'])
+        if data == 'true':
+            cluster_nodes = ClusterNodes.get_cluster_nodes()
+            for node in cluster_nodes:
+                r = requests.delete('http://'+ node +'5000:/deleteallbuckets')
+        
+            return "OK", 200
+    
+    return "METHOD NOT ALLOWED", 405
 
 @app.route('/<bucketName>')
 def get_objectlist(bucketName):
@@ -63,7 +74,7 @@ def create_bucket():
         nr = NodeRing()
         nodes = nr.get_nodes(bucket_name)
         print(nodes)
-        for node in nodes[:1]:
+        for node in nodes[:2]:
             r = requests.post('http://'+ node + ':5000/createbucket', data={'bucketName' : bucket_name })
             if r.status_code!= 200:
                 print('start hinted handoff')
