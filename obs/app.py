@@ -141,7 +141,7 @@ def get_object_list():
     # </form>
     # '''
 
-@app.route('/getbucketlist', methods=['GET', 'POST'])
+@app.route('/getbucketlist', methods=['GET'])
 def get_bucket_list():
     
     bucket_list: list() = os.listdir(OBS_BUCKET_DIR)
@@ -280,7 +280,7 @@ def get_object():
         #******************************************************************
         #**Make this async
         ph = PersistObjectHandler()
-        sairo_object = ph.read(os.path.join(OBS_BUCKET_DIR, bucket_name, object_name), 
+        sairo_object: SairoObject = ph.read(os.path.join(OBS_BUCKET_DIR, bucket_name, object_name), 
                         object_name)
         f = open(OBS_TMPOBJ_DIR+'/'+sairo_object.object_key, 'wb')
         f.write(sairo_object.file_bin)
@@ -343,6 +343,23 @@ def delete_object():
             cp = subprocess.run('rm -rf '+OBS_BUCKET_DIR+'/'+bucket_name+'/'+object_name, 
                 shell=True, check=True)
             if cp.returncode == 0:
+
+                bucket_path = os.path.join(OBS_BUCKET_DIR, bucket_name)
+                bucket_ser_path = os.path.join(bucket_path, bucket_name+'.pk')
+                pbh = PersistBucketHandler()
+                sairo_bucket_obj: SairoBucket = pbh.read(bucket_ser_path)
+                sairo_bucket_obj.del_object_list(object_name)
+                try:
+
+                    if pbh.persist(sairo_bucket_obj):
+                        print(f'Bucket Serialized after removing object {object_name}...')
+                        flash(f'Bucket Saved')
+
+                except FileNotFoundError:
+
+                    print(f'Requested Bucket {bucket_name} is not present')
+                    flash('Bucket Not Created Yet') 
+                    
                 print(f'{object_name} Object Deleted in bucket {bucket_name}')
                 flash(f'{bucket_name} Object Deleted in bucket {bucket_name}')
         
