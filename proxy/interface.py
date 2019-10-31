@@ -3,6 +3,7 @@ from flask import Flask, flash, request, redirect, url_for, render_template, sen
 import requests
 import json
 import os
+from nodering import NodeRing
 
 
 app = Flask(__name__)
@@ -25,7 +26,10 @@ def index():
 @app.route('/<bucketName>')
 def get_objectlist(bucketName):
     # print(bucketName)
-    r = requests.post('http://localhost:5000/getobjectlist', data={'bucketName' :bucketName})
+    nr = NodeRing()
+    nodes = nr.get_nodes(bucketName)
+    print(nodes)
+    r = requests.post('http://'+ nodes[0] +':5000/getobjectlist', data={'bucketName' :bucketName})
     bucket_objects = json.loads(r.text)
     return render_template('objects.html', objects=bucket_objects, bucketName=bucketName)
 
@@ -48,7 +52,13 @@ def uploads(bucketName, fileName):
 def create_bucket():
     if request.method == 'POST':
         bucket_name = str(request.form['bucketName'])
-        r = requests.post('http://localhost:5000/createbucket', data={'bucketName' : bucket_name })
+        nr = NodeRing()
+        nodes = nr.get_nodes(bucket_name)
+        print(nodes)
+        for node in nodes[:1]:
+            r = requests.post('http://'+ node + ':5000/createbucket', data={'bucketName' : bucket_name })
+            if r.status_code!= 200:
+                print('start hinted handoff')
         # print(r.text)
         return redirect(url_for('index'))
 
