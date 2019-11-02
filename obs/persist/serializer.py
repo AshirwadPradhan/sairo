@@ -3,7 +3,7 @@ import os
 from sairo_bucket import SairoBucket
 from sairo_objects import SairoObject
 
-OBS_BUCKET_DIR = '/home/dominouzu/sairo'
+OBS_BUCKET_DIR = '~/.sairo'
 
 class ObjectSerializer:
 

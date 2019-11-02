@@ -14,7 +14,7 @@ import base64
 import simplejson as json
 
 
-OBS_BUCKET_DIR = '/home/dominouzu/sairo'
+OBS_BUCKET_DIR = '~/.sairo'
 if not os.path.exists(OBS_BUCKET_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_BUCKET_DIR, shell=True, check=True)
@@ -24,7 +24,7 @@ if not os.path.exists(OBS_BUCKET_DIR):
         print(e.stderr)
 
 
-OBS_TMP_DIR = '/home/dominouzu/sairo/tmp'
+OBS_TMP_DIR = '~/.sairo/tmp'
 if not os.path.exists(OBS_TMP_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_DIR, shell=True, check=True)
@@ -33,7 +33,7 @@ if not os.path.exists(OBS_TMP_DIR):
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
-OBS_TMPOBJ_DIR = '/home/dominouzu/sairo/tmpobj'
+OBS_TMPOBJ_DIR = '~/.sairo/tmpobj'
 if not os.path.exists(OBS_TMPOBJ_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMPOBJ_DIR, shell=True, check=True)
@@ -286,7 +286,8 @@ def get_object():
         f.write(sairo_object.file_bin)
         f.close()
         #*******************************************************************
-        return get_uploaded_file(sairo_object.object_key)
+        print(sairo_object.get_metadata())
+        return get_uploaded_file(sairo_object.object_key), jsonify(sairo_object.get_metadata())
         # return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
 
     return ''' 
