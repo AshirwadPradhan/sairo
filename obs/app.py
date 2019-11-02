@@ -154,7 +154,7 @@ def get_bucket_list():
 @app.route('/')
 def index():
 
-    return '<h1> Hello Sairo </h1>'
+    return '<h1> Hello Sairo </h1>', 200
 
 
 
