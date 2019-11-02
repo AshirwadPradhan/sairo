@@ -44,8 +44,8 @@ class sshFileTransfer:
 
 #ip,source,destination, are parameters
 
-ip = "192.168.3.12"
-source = '/home/jack/Desktop/virus.txt'
-destination = '/home/shashank/Desktop/copiedfile.txt'
-obj = sshFileTransfer()
-obj.sshCopy(ip,source,destination)
+# ip = "192.168.3.12"
+# source = '/home/jack/Desktop/virus.txt'
+# destination = '/home/shashank/Desktop/copiedfile.txt'
+# obj = sshFileTransfer()
+# obj.sshCopy(ip,source,destination)
