@@ -10,8 +10,8 @@ class SairoObject:
         self._version_id = 0
         self._file_bin = file_bin
         self._metadata = metadata
-        hasher = hashlib.md5(self._object_key)
-        self._object_id = hasher.hexdigest
+        hasher = hashlib.md5(self._object_key.encode())
+        self._object_id = hasher.hexdigest()
         self._time_created = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
         self._md5_hash = md5_hash
         self._self_link = None
