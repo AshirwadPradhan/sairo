@@ -4,7 +4,7 @@ from persist.serializer import ObjectSerializer
 from sairo_bucket import SairoBucket
 from sairo_objects import SairoObject
 
-OBS_BUCKET_DIR = '/home/dominouzu/sairo'
+OBS_BUCKET_DIR = '~/.sairo'
 
 class PersistBucketHandler:
 
@@ -52,7 +52,7 @@ class PersistObjectHandler:
 
         if objs.serialize(self._ohobj):
 
-            bucket_path = os.path.join('/home/dominouzu/sairo',sairo_object.bucket)
+            bucket_path = os.path.join(OBS_BUCKET_DIR, sairo_object.bucket)
             buck_ser_path = os.path.join(bucket_path, sairo_object.bucket+'.pk')
             print(f'Reading bucket {buck_ser_path}....')
             bucket_obj: SairoBucket = bucks.deserialize(buck_ser_path)

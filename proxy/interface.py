@@ -8,8 +8,17 @@ import subprocess
 
 app = Flask(__name__)
 
-OBS_TMP_OP_DIR = '/home/sairo/tmpmaster'
-app.config['OBS_TMP_OP_DIR'] = OBS_TMP_OP_DIR
+OBS_TMP_SAIRO_SERVE = '~/.sairo_if_serve'
+if not os.path.exists(OBS_TMP_SAIRO_SERVE):
+    try:
+        cp = subprocess.run('mkdir '+OBS_TMP_SAIRO_SERVE, shell=True, check=True)
+        if cp.returncode == 0:
+            print(f'{OBS_TMP_SAIRO_SERVE} Bucket Directory Created')
+    except subprocess.CalledProcessError as e:
+        print(e.stderr)
+
+
+OBS_TMP_OP_DIR = '~/.sairo_if_serve/tmpmaster'
 if not os.path.exists(OBS_TMP_OP_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_OP_DIR, shell=True, check=True)
@@ -17,6 +26,7 @@ if not os.path.exists(OBS_TMP_OP_DIR):
             print(f'{OBS_TMP_OP_DIR} Bucket Directory Created')
     except subprocess.CalledProcessError as e:
         print(e.stderr)
+app.config['OBS_TMP_OP_DIR'] = OBS_TMP_OP_DIR
 
 
 def get_all_buckets():
@@ -28,7 +38,6 @@ def get_all_buckets():
     print(buckets)
     all_buckets = list(set(buckets))
     return all_buckets
-
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -54,6 +63,7 @@ def delete_all_buckets():
             return "OK", 200
     
     return "METHOD NOT ALLOWED", 405
+
 
 @app.route('/<bucketName>')
 def get_objectlist(bucketName):
