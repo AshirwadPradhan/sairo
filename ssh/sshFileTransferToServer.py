@@ -1,20 +1,27 @@
-## executing command over ssh
-
-
 #pip3 install paramiko to run this code
 #PasswordAuthentication in sshd_config should be set to "yes" sudo gedit /etc/ssh/sshd_config
-#sshd service should be running in target machine "sudo service ssh status"
 
 
 import paramiko
 
 class sshFileTransfer:
-    def sshFileTransferWizard(self,user_name,password,ip):
+    def sshCopy(self,ip,source,destination):
+
+        ipdict =	{
+            "192.168.3.10": "shashank",
+            "192.168.3.11": "vm2",
+            "192.168.3.12": "shashank",
+            "192.168.3.13": "vm1",
+            "192.168.3.14": "jack",
+            "192.168.3.15": "vm4"
+        }
+
+        user_name = ipdict[ip]
 
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        print("connecting with remote server....")
-        ssh_client.connect(hostname=ip,username=user_name,password=password)
+        #print("connecting with remote server....")
+        ssh_client.connect(hostname=ip,username=user_name,password='')
 
 
         sftp_client = ssh_client.open_sftp()       #sftp_client object to open sftp connection with remote machine
@@ -26,7 +33,7 @@ class sshFileTransfer:
 
         ## transfer to remote
         ######sftp_client.put('source','destination')
-        sftp_client.put('/home/jack/Desktop/virus.txt','/home/vm4/Desktop/copiedfile.txt')
+        sftp_client.put(source,destination)
 
         sftp_client.close()
         ssh_client.close()
@@ -34,9 +41,11 @@ class sshFileTransfer:
 
 
 
-# user_name = "vm4"
-# password = "1234"
-# ip = "192.168.3.15"
-#
-# obj = sshFileTransfer()
-# obj.sshFileTransferWizard(user_name,password,ip)
+
+#ip,source,destination, are parameters
+
+ip = "192.168.3.12"
+source = '/home/jack/Desktop/virus.txt'
+destination = '/home/shashank/Desktop/copiedfile.txt'
+obj = sshFileTransfer()
+obj.sshCopy(ip,source,destination)
