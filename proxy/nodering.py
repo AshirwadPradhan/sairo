@@ -1,5 +1,6 @@
-from uhashring import HashRing
 import yaml
+from uhashring import HashRing
+from check_health import CheckHealth
 
 class ClusterNodes:
 
@@ -29,17 +30,23 @@ class NodeRing:
         _cp_hr = hash_ring
         replica_nodes = {'member_nodes':[],
                         'backup_nodes':[]}
+        target_node = str()
 
         for _ in range(0,3):
-            target_node = _cp_hr.get(bucket_name)['hostname']
-            replica_nodes['member_nodes'].append(target_node)
+
+            if CheckHealth.check(_cp_hr.get(bucket_name)['hostname']):
+                target_node = _cp_hr.get(bucket_name)['hostname']
+                replica_nodes['member_nodes'].append(target_node)
+
             _cp_hr.remove_node(target_node)
         
         for _ in range(0,2):
             #works only for 5 node cluster
             #assumption is that the 1st node of the member nodes is always reachable.
-            target_node = _cp_hr.get(bucket_name)['hostname']
-            replica_nodes['backup_nodes'].append(target_node)
+            if CheckHealth.check(_cp_hr.get(bucket_name)['hostname']):
+                target_node = _cp_hr.get(bucket_name)['hostname']
+                replica_nodes['backup_nodes'].append(target_node)
+
             _cp_hr.remove_node(target_node)
 
         return replica_nodes
