@@ -114,8 +114,6 @@ def uploads(bucketName, fileName):
             with open(os.path.join(app.config['OBS_TMP_OP_DIR'], str(i) + fileName) , 'r') as fh:
                 buf = fh.read()
                 hasher.update(buf.encode())
-                print('----------------')
-                print(hasher.hexdigest())
                 if not hasher.hexdigest() in contents:
                     contents[hasher.hexdigest()] = str(i) + fileName
 
@@ -127,6 +125,8 @@ def uploads(bucketName, fileName):
                 buf = fh.read()
                 hasher.update(buf)
                 # contents.add(str(hasher.hexdigest()))
+                if not hasher.hexdigest() in contents:
+                    contents[hasher.hexdigest()] = str(i) + fileName
                 print("=================added from node " + node)
 
     # import pdb; pdb.set_trace()
