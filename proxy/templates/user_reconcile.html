@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    There seems to be multiple versions of the object you are trying to aceess. Please choose the correct one.
+    <ul>
+        {% for i, file in files.items() %}
+        <li>
+            {{ i }}  -    {{ file }} &nbsp; <a  href="{{ url_for('read_reconcile', bucketName = request.path.split('/')[1], fileName = file) }}"> select </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {{ request.path.split('/')[1] }}
+</body>
+</html>
