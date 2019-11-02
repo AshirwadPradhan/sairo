@@ -286,7 +286,8 @@ def get_object():
         f.write(sairo_object.file_bin)
         f.close()
         #*******************************************************************
-        return get_uploaded_file(sairo_object.object_key)
+        print(sairo_object.get_metadata())
+        return get_uploaded_file(sairo_object.object_key), jsonify(sairo_object.get_metadata())
         # return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
 
     return ''' 
