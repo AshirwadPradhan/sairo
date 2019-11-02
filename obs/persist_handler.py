@@ -3,8 +3,10 @@ from persist.serializer import BucketSerializer
 from persist.serializer import ObjectSerializer
 from sairo_bucket import SairoBucket
 from sairo_objects import SairoObject
+from pathlib import Path
 
-OBS_BUCKET_DIR = '~/.sairo'
+HOME = Path.home()
+OBS_BUCKET_DIR = os.path.join(HOME, '.sairo')
 
 class PersistBucketHandler:
 

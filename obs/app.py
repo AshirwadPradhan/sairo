@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import subprocess
 import hashlib
 from flask import Flask, flash, request, redirect, url_for
@@ -13,8 +14,8 @@ from persist_handler import PersistObjectHandler
 import base64
 import simplejson as json
 
-
-OBS_BUCKET_DIR = '~/.sairo'
+HOME = str(Path.home())
+OBS_BUCKET_DIR = os.path.join(HOME,'.sairo')
 if not os.path.exists(OBS_BUCKET_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_BUCKET_DIR, shell=True, check=True)
@@ -24,7 +25,7 @@ if not os.path.exists(OBS_BUCKET_DIR):
         print(e.stderr)
 
 
-OBS_TMP_DIR = '~/.sairo/tmp'
+OBS_TMP_DIR = os.path.join(OBS_BUCKET_DIR,'tmp')
 if not os.path.exists(OBS_TMP_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_DIR, shell=True, check=True)
@@ -33,12 +34,12 @@ if not os.path.exists(OBS_TMP_DIR):
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
-OBS_TMPOBJ_DIR = '~/.sairo/tmpobj'
+OBS_TMPOBJ_DIR = os.path.join(OBS_BUCKET_DIR,'tmpobj')
 if not os.path.exists(OBS_TMPOBJ_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMPOBJ_DIR, shell=True, check=True)
         if cp.returncode == 0:
-            print(f'{OBS_TMP_DIR} TempOBJ directory Created')
+            print(f'{OBS_TMPOBJ_DIR} TempOBJ directory Created')
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
@@ -208,8 +209,8 @@ def create_object():
                     buf = fh.read()
                     hasher.update(buf)
                 
-                metadata = SystemMetadata(content_length, file.mimetype, hasher.hexdigest())
-
+                metadata_obj = SystemMetadata(content_length, file.mimetype, hasher.hexdigest())
+                metadata = metadata_obj.get()
                 sairo_object_obj = SairoObject(filename, bucket_name, 
                                 buf, metadata, hasher.hexdigest())
                 
@@ -287,7 +288,7 @@ def get_object():
         f.close()
         #*******************************************************************
         print(sairo_object.get_metadata())
-        return get_uploaded_file(sairo_object.object_key), jsonify(sairo_object.get_metadata())
+        return get_uploaded_file(sairo_object.object_key)
         # return redirect(url_for('uploaded_file', filename = sairo_object.object_key))
 
     return ''' 
