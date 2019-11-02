@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import subprocess
 import hashlib
 from flask import Flask, flash, request, redirect, url_for
@@ -13,8 +14,8 @@ from persist_handler import PersistObjectHandler
 import base64
 import simplejson as json
 
-
-OBS_BUCKET_DIR = '~/.sairo'
+HOME = str(Path.home())
+OBS_BUCKET_DIR = os.path.join(HOME,'.sairo')
 if not os.path.exists(OBS_BUCKET_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_BUCKET_DIR, shell=True, check=True)
@@ -24,7 +25,7 @@ if not os.path.exists(OBS_BUCKET_DIR):
         print(e.stderr)
 
 
-OBS_TMP_DIR = '~/.sairo/tmp'
+OBS_TMP_DIR = os.path.join(OBS_BUCKET_DIR,'tmp')
 if not os.path.exists(OBS_TMP_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_DIR, shell=True, check=True)
@@ -33,7 +34,7 @@ if not os.path.exists(OBS_TMP_DIR):
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
-OBS_TMPOBJ_DIR = '~/.sairo/tmpobj'
+OBS_TMPOBJ_DIR = os.path.join(OBS_BUCKET_DIR,'tmp')
 if not os.path.exists(OBS_TMPOBJ_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMPOBJ_DIR, shell=True, check=True)

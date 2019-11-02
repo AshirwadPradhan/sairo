@@ -6,10 +6,12 @@ import os
 from nodering import NodeRing, ClusterNodes
 import subprocess
 import hashlib
+from pathlib import Path
 
 app = Flask(__name__)
 
-OBS_TMP_SAIRO_SERVE = '~/.sairo_if_serve'
+HOME = str(Path.home())
+OBS_TMP_SAIRO_SERVE = os.path.join(HOME,'.sairo_if_serve')
 if not os.path.exists(OBS_TMP_SAIRO_SERVE):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_SAIRO_SERVE, shell=True, check=True)
@@ -19,7 +21,7 @@ if not os.path.exists(OBS_TMP_SAIRO_SERVE):
         print(e.stderr)
 
 
-OBS_TMP_OP_DIR = '~/.sairo_if_serve/tmpmaster'
+OBS_TMP_OP_DIR = os.path.join(OBS_TMP_SAIRO_SERVE,'tmpmaster')
 if not os.path.exists(OBS_TMP_OP_DIR):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_OP_DIR, shell=True, check=True)
