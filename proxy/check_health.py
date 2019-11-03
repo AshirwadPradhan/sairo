@@ -15,6 +15,6 @@ class CheckHealth:
             else:
                 print(f'{ip} Health: NOT OK...')
                 return False
-        except Timeout as e:
+        except Exception:
             print(f'{ip} Health: NOT OK...')
             return False

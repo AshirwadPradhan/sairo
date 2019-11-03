@@ -39,6 +39,7 @@ class NodeRing:
                 replica_nodes['member_nodes'].append(target_node)
                 _cp_hr.remove_node(target_node)
             else:
+                target_node = _cp_hr.get(bucket_name)['hostname']
                 _cp_hr.remove_node(target_node)
         
         for _ in range(0,2):
@@ -49,6 +50,7 @@ class NodeRing:
                 replica_nodes['backup_nodes'].append(target_node)
                 _cp_hr.remove_node(target_node)
             else:
+                target_node = _cp_hr.get(bucket_name)['hostname']
                 _cp_hr.remove_node(target_node)
 
         return replica_nodes
