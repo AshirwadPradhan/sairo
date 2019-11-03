@@ -7,6 +7,7 @@ from nodering import NodeRing, ClusterNodes
 import subprocess
 import hashlib
 from pathlib import Path
+import sys
 
 app = Flask(__name__)
 
@@ -243,4 +244,5 @@ def favicon():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=10000, debug=True)
+    print(int(sys.argv[1]))
+    app.run(host='0.0.0.0', port=int(sys.argv[1]), debug=True)
