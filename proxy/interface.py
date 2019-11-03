@@ -7,11 +7,13 @@ from nodering import NodeRing, ClusterNodes
 import subprocess
 import hashlib
 from pathlib import Path
+import sys
 
 app = Flask(__name__)
 
 HOME = str(Path.home())
 OBS_TMP_SAIRO_SERVE = os.path.join(HOME,'.sairo_if_serve')
+OBS_SAIRO_HANDOFF = os.path.join(HOME, '.sairo_backhandoff')
 if not os.path.exists(OBS_TMP_SAIRO_SERVE):
     try:
         cp = subprocess.run('mkdir '+OBS_TMP_SAIRO_SERVE, shell=True, check=True)
@@ -43,7 +45,7 @@ def get_all_buckets():
     cluster_nodes = ClusterNodes.get_cluster_nodes()
     buckets = []
     for node in cluster_nodes:
-        r =  requests.get('http://'+ node +':5000/getbucketlist')
+        r =  requests.get('http://'+ node +'/getbucketlist')
         buckets.extend(json.loads(r.text))
     print(buckets)
     all_buckets = list(set(buckets))
@@ -68,7 +70,7 @@ def delete_all_buckets():
         if data == 'true':
             cluster_nodes = ClusterNodes.get_cluster_nodes()
             for node in cluster_nodes:
-                r = requests.delete('http://'+ node +'5000:/deleteallbuckets')
+                r = requests.delete('http://'+ node +'/deleteallbuckets')
         
             return "OK", 200
     
@@ -83,7 +85,7 @@ def get_objectlist(bucketName):
     # print(nodes)
     bucket_objects = {}
     for node in nodes['member_nodes']:
-        r = requests.post('http://'+ node +':5000/getobjectlist', data={'bucketName' :bucketName})
+        r = requests.post('http://'+ node +'/getobjectlist', data={'bucketName' :bucketName})
         bucket_objects.update(json.loads(r.text))
     return render_template('objects.html', objects=bucket_objects, bucketName=bucketName)
 
@@ -107,7 +109,7 @@ def uploads(bucketName, fileName):
     conflicted_objects =  {}
     
     for i, node in enumerate(nodes['member_nodes']):
-        r = requests.post('http://'+ node +':5000/getobject', data={'bucketName' :bucketName, 'objectName': fileName})
+        r = requests.post('http://'+ node +'/getobject', data={'bucketName' :bucketName, 'objectName': fileName})
         if 'txt' in fileName:
             with open(os.path.join(app.config['OBS_TMP_OP_DIR'], str(i) + fileName), 'w') as f:
                 f.write(r.text)
@@ -157,8 +159,8 @@ def create_bucket():
         nodes = get_nodes(bucket_name)
         print(nodes)
         for node in nodes['member_nodes']:
-            r = requests.post('http://'+ node + ':5000/createbucket', data={'bucketName' : bucket_name })
-            if r.status_code  != 200:
+            r = requests.post('http://'+ node + '/createbucket', data={'bucketName' : bucket_name })
+            if r.status_code != 200:
                 print('start hinted handoff')
             else:
                 print("created bucket in " + node)
@@ -181,7 +183,7 @@ def create_object(bucketName):
         # nr = NodeRing()
         nodes = get_nodes(bucketName)
         for node in nodes['member_nodes']:
-            r = requests.post("http://"+ node +":5000/createobject", files=sendFile, data={'bucketName': bucketName})
+            r = requests.post("http://"+ node +"/createobject", files=sendFile, data={'bucketName': bucketName})
         return redirect(url_for('get_objectlist', bucketName=bucketName))
     return render_template('createobject.html')
 
@@ -193,7 +195,7 @@ def delete_bucket(bucketName):
     nodes = get_nodes(bucketName)
     # print(nodes)
     for node in nodes['member_nodes']:
-        r = requests.post('http://'+ node +':5000/deletebucket', data={'bucketName': bucketName})
+        r = requests.post('http://'+ node +'/deletebucket', data={'bucketName': bucketName})
         if r.status_code == 200:
             print("============================== deleted from" + node + "===================================")
     return redirect(url_for('index'))
@@ -208,7 +210,7 @@ def delete_object(bucketName, objectName):
     nodes = get_nodes(bucketName)
     print(nodes)
     for node in nodes['member_nodes']:
-        r = requests.post("http://"+ node +":5000/deleteobject", data={'bucketName': bucketName, 'objectName': objectName})
+        r = requests.post("http://"+ node +"/deleteobject", data={'bucketName': bucketName, 'objectName': objectName})
     return redirect(url_for('get_objectlist', bucketName=bucketName))
 
 
@@ -228,7 +230,7 @@ def read_reconcile(bucketName, fileName):
         sendFile = {"file": open(os.path.join(app.config['OBS_TMP_OP_DIR'], fileName), 'r')}
         nodes = get_nodes(bucketName)
         for node in nodes['member_nodes']:
-            r = requests.post("http://"+ node +":5000/createobject", files=sendFile, data={'bucketName': bucketName})
+            r = requests.post("http://"+ node +"/createobject", files=sendFile, data={'bucketName': bucketName})
         return redirect(url_for('get_objectlist', bucketName=bucketName))
     else:
         print("doesnt exitsn")
@@ -243,4 +245,8 @@ def favicon():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=10000, debug=True)
+    try:
+        app.run(host='0.0.0.0', port=sys.argv[1], debug=True)
+        
+    except IndexError:
+        app.run(host='0.0.0.0', port=10000, debug=True)

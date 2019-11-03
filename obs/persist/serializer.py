@@ -6,6 +6,7 @@ from pathlib import Path
 
 HOME = Path.home()
 OBS_BUCKET_DIR = os.path.join(HOME, '.sairo')
+OBS_SAIRO_HANDOFF = os.path.join(HOME, '.sairo_backhandoff')
 
 class ObjectSerializer:
 
@@ -74,12 +75,16 @@ class BucketSerializer:
         pass
         
         
-    def serialize(self, sairo_bucket: SairoBucket) -> bool:
+    def serialize(self, sairo_bucket: SairoBucket, backup: bool = False, original_ip: str = '') -> bool:
 
         if isinstance(sairo_bucket, SairoBucket):
 
-            serial_bucket_dir = OBS_BUCKET_DIR+'/'+sairo_bucket.name
-            serial_bucket_file = serial_bucket_dir+'/'+sairo_bucket.name+'.pk'
+            if backup is False:
+                serial_bucket_dir = OBS_BUCKET_DIR+'/'+sairo_bucket.name
+                serial_bucket_file = serial_bucket_dir+'/'+sairo_bucket.name+'.pk'
+            else:
+                serial_bucket_dir = OBS_SAIRO_HANDOFF+'/'+original_ip+'/'+sairo_bucket.name
+                serial_bucket_file = serial_bucket_dir+'/'+sairo_bucket.name+'.pk'
             
             if os.path.exists(serial_bucket_dir):
                 try:

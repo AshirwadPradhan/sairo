@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import subprocess
 import hashlib
@@ -43,6 +44,7 @@ if not os.path.exists(OBS_TMPOBJ_DIR):
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
+OBS_SAIRO_HANDOFF = os.path.join(HOME, '.sairo_backhandoff')
 
 ALLOWED_EXTENSIONS = ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif']
 
@@ -50,6 +52,7 @@ app = Flask(__name__)
 app.config['OBS_TMP_DIR'] = OBS_TMP_DIR
 app.config['OBS_BUCKET_DIR'] = OBS_BUCKET_DIR
 app.config['OBS_TMPOBJ_DIR'] = OBS_TMPOBJ_DIR
+app.config['OBS_SAIRO_HANDOFF'] = OBS_SAIRO_HANDOFF
 app.config['SECRET_KEY'] = b'_5#y2L"F4Q8z\n\xec]/'
 
 def allowed_file(filename):
@@ -111,6 +114,54 @@ def create_bucket():
     #     <input type=submit value=Create Bucket>
     # </form>
     # '''
+
+@app.route('/createbackupbucket', methods=['GET', 'POST'])
+def create_backup_bucket():
+
+    if request.method == 'POST':
+
+        bucket_name = str(request.form['bucketName'])
+        original_ip = str(request.form['originalIP'])
+        write_path = os.path.join(OBS_SAIRO_HANDOFF, original_ip)
+        try:
+            cp = subprocess.run('mkdir '+write_path+'/'+bucket_name, shell=True, check=True)
+            if cp.returncode == 0:
+                print(f'{bucket_name} Bucket Created')
+                flash(f'{bucket_name} Bucket Created')
+
+            #**************************************************
+            ##Make this part asynchronous
+            sairo_bucket_obj = SairoBucket(bucket_name)
+            try:
+
+                pbh = PersistBucketHandler()
+                if pbh.persist(sairo_bucket_obj, backup = True, original_ip = original_ip):
+                    print('Bucket Serialized...')
+                    flash('Bucket Saved')
+
+            except FileNotFoundError:
+
+                print('Requested Bucket is not present')
+                flash('Bucket Not Created Yet') 
+            #***************************************************
+
+            return redirect(request.url)
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            print('Bucket Already Present')
+            flash('Bucket Already Present')
+
+            return redirect(request.url)
+
+        except FileNotFoundError:
+
+            print('File not found')
+            flash('File not found error')
+
+            return redirect(request.url)
+
+    return "ok"
 
 @app.route('/getobjectlist', methods=['GET', 'POST'])
 def get_object_list():
@@ -255,6 +306,109 @@ def create_object():
         <input type= submit value=Upload>
     </form>
     '''
+
+
+
+
+@app.route('/createbackupobject', methods=['GET', 'POST'])
+def create_backup_object():
+
+    if request.method == 'POST':
+
+        if 'file' not in request.files:
+
+            print('No file added')
+            flash('No file added')
+            return redirect(request.url)
+
+        file = request.files['file']
+        if file.filename == '':
+
+            print('No file selected')
+            flash('No file selected')
+            return redirect(request.url)
+        
+        if file and allowed_file(file.filename):
+
+            filename = secure_filename(file.filename)
+            bucket_name = str(request.form['bucketName'])
+            original_ip = str(request.form['originalIP'])
+            try:
+
+                save_path = os.path.join(app.config['OBS_TMP_DIR'], filename) 
+                file.save(save_path)
+                print(f'File {filename} saved...')
+                
+                object_path = OBS_SAIRO_HANDOFF+'/'+original_ip+'/'+bucket_name+'/'+filename
+                if not os.path.exists(object_path):
+                    cp = subprocess.run('mkdir '+OBS_SAIRO_HANDOFF+'/'+original_ip+'/'+bucket_name+'/'+filename, 
+                                        shell=True, check=True)
+                    if cp.returncode == 0:
+                        print(f'{filename} Backup Object Initialized...')
+                        flash(f'{filename} Backup Object Initialized')
+                
+
+                #**********************************************************
+                #**Make this part aysnchronous
+                try:
+                    content_length = os.path.getsize(save_path)
+                except NotImplementedError:
+                    print('Unable to get content length.. Setting it to 0')
+                    content_length = 0
+                
+                hasher = hashlib.md5()
+                buf = None
+                with open(save_path, 'rb') as fh:
+                    buf = fh.read()
+                    hasher.update(buf)
+                
+                metadata_obj = SystemMetadata(content_length, file.mimetype, hasher.hexdigest())
+                metadata = metadata_obj.get()
+                sairo_object_obj = SairoObject(filename, bucket_name, 
+                                buf, metadata, hasher.hexdigest())
+                
+                try:
+
+                    poh = PersistObjectHandler()
+                    if poh.persist(sairo_object_obj):
+                        print(f'Object {sairo_object_obj.object_key} Serialized...')
+                        flash('Bucket Saved')
+
+                except FileNotFoundError:
+
+                    print('Requested Bucket is not present')
+                    flash('Bucket Not Created Yet') 
+                
+                #***********************************************************
+
+                return redirect(request.url)
+                # return redirect(url_for('uploaded_file', filename = filename))
+
+            except FileNotFoundError:
+                print(f'File Dest not found {filename}')
+
+                return redirect(request.url)
+            
+            except subprocess.CalledProcessError as e:
+                print(e.stdout)
+                print('Object Already Present')
+                flash('Object Already Present')
+
+                return redirect(request.url)
+
+    
+    return ''' 
+    <!doctype html>
+    <title> Upload file </title>
+    <h1> Upload New File </h1>
+    <form method=post enctype=multipart/form-data>
+        <input type=text name=bucketName placeholder="Enter Bucket Name">
+        <br> <p> </p>
+        <input type=file name=file>
+        <input type= submit value=Upload>
+    </form>
+    '''
+
 
 # @app.route('/uploads/<filename>')
 # def uploaded_file(filename):
@@ -409,4 +563,7 @@ def delete_object():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
+    try:
+        app.run(host='0.0.0.0', port=sys.argv[1], debug=True)
+    except IndexError:
+        app.run(host='0.0.0.0', port=5000, debug=True)

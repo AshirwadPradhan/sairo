@@ -37,8 +37,9 @@ class NodeRing:
             if CheckHealth.check(_cp_hr.get(bucket_name)['hostname']):
                 target_node = _cp_hr.get(bucket_name)['hostname']
                 replica_nodes['member_nodes'].append(target_node)
-
-            _cp_hr.remove_node(target_node)
+                _cp_hr.remove_node(target_node)
+            else:
+                _cp_hr.remove_node(target_node)
         
         for _ in range(0,2):
             #works only for 5 node cluster
@@ -46,8 +47,9 @@ class NodeRing:
             if CheckHealth.check(_cp_hr.get(bucket_name)['hostname']):
                 target_node = _cp_hr.get(bucket_name)['hostname']
                 replica_nodes['backup_nodes'].append(target_node)
-
-            _cp_hr.remove_node(target_node)
+                _cp_hr.remove_node(target_node)
+            else:
+                _cp_hr.remove_node(target_node)
 
         return replica_nodes
 

@@ -7,6 +7,7 @@ from pathlib import Path
 
 HOME = Path.home()
 OBS_BUCKET_DIR = os.path.join(HOME, '.sairo')
+OBS_SAIRO_HANDOFF = os.path.join(HOME, '.sairo_backhandoff')
 
 class PersistBucketHandler:
 
@@ -14,14 +15,14 @@ class PersistBucketHandler:
 
         self._bhobj = None
     
-    def persist(self, sairo_bucket: SairoBucket) -> bool:
+    def persist(self, sairo_bucket: SairoBucket, backup: bool = False, original_ip: str = '') -> bool:
 
         bs = BucketSerializer()
         self._bhobj = sairo_bucket
 
         try:
 
-            if bs.serialize(self._bhobj):
+            if bs.serialize(self._bhobj, backup, original_ip):
                 return True
             else:
                 return False
@@ -40,35 +41,56 @@ class PersistObjectHandler:
     def __init__(self):
         self._ohobj = None
     
-    def persist(self, sairo_object: SairoObject) -> bool:
+    def persist(self, sairo_object: SairoObject, backup: bool = False, original_ip: str = '') -> bool:
 
         self._ohobj: SairoObject = sairo_object
 
         self._ohobj.version_id = self.determine_version()
-        object_path = os.path.join(OBS_BUCKET_DIR, self._ohobj.bucket, self._ohobj.object_key)
-        self._ohobj.self_link = os.path.join(object_path, 
-                                self._ohobj.object_key+str(self._ohobj.version_id)+'.pk')        
+
+        if backup is False:
+            object_path = os.path.join(OBS_BUCKET_DIR, self._ohobj.bucket, self._ohobj.object_key)
+            self._ohobj.self_link = os.path.join(object_path, 
+                                self._ohobj.object_key+str(self._ohobj.version_id)+'.pk')
+
+        else:
+            object_path = os.path.join(OBS_SAIRO_HANDOFF, original_ip, self._ohobj.bucket, self._ohobj.object_key)
+            self._ohobj.self_link = os.path.join(object_path, 
+                                self._ohobj.object_key+str(self._ohobj.version_id)+'.pk')
 
         objs = ObjectSerializer()
         bucks = BucketSerializer()
 
         if objs.serialize(self._ohobj):
 
-            bucket_path = os.path.join(OBS_BUCKET_DIR, sairo_object.bucket)
-            buck_ser_path = os.path.join(bucket_path, sairo_object.bucket+'.pk')
-            print(f'Reading bucket {buck_ser_path}....')
-            bucket_obj: SairoBucket = bucks.deserialize(buck_ser_path)
-            bucket_obj.object_list = self._ohobj.object_key
+            if backup is False:
+                bucket_path = os.path.join(OBS_BUCKET_DIR, sairo_object.bucket)
+                buck_ser_path = os.path.join(bucket_path, sairo_object.bucket+'.pk')
+                print(f'Reading bucket {buck_ser_path}....')
+                bucket_obj: SairoBucket = bucks.deserialize(buck_ser_path)
+                bucket_obj.object_list = self._ohobj.object_key
 
-            if bucks.serialize(bucket_obj):
-                print(f'Bucket {bucket_obj.name} updated with {self._ohobj.object_key}')
+                if bucks.serialize(bucket_obj):
+                    print(f'Bucket {bucket_obj.name} updated with {self._ohobj.object_key}')
+                else:
+                    print(f'ERROR:Bucket {bucket_obj.name} CANNOT be updated with {self._ohobj.object_key}')
+
+                return True
             else:
-                print(f'ERROR:Bucket {bucket_obj.name} CANNOT be updated with {self._ohobj.object_key}')
+                bucket_path = os.path.join(OBS_SAIRO_HANDOFF, original_ip, sairo_object.bucket)
+                buck_ser_path = os.path.join(bucket_path, sairo_object.bucket+'.pk')
+                print(f'Reading backup bucket {buck_ser_path}....')
+                bucket_obj: SairoBucket = bucks.deserialize(buck_ser_path)
+                bucket_obj.object_list = self._ohobj.object_key
 
-            return True
+                if bucks.serialize(bucket_obj, backup = True, original_ip = original_ip):
+                    print(f'Backup Bucket {bucket_obj.name} updated with {self._ohobj.object_key}')
+                else:
+                    print(f'ERROR: Bakcup Bucket {bucket_obj.name} CANNOT be updated with {self._ohobj.object_key}')
+
+                return True
         else:
             return False
-    
+        
     def read(self, serial_object_path: str, object_name: str) -> SairoObject:
         
         bs = ObjectSerializer()
@@ -92,5 +114,3 @@ class PersistObjectHandler:
 
         else:
             return 1
-
-
