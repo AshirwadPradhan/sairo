@@ -29,7 +29,8 @@ class NodeRing:
         hash_ring = HashRing(self._nodes)
         _cp_hr = hash_ring
         replica_nodes = {'member_nodes':[],
-                        'backup_nodes':[]}
+                        'backup_nodes':[],
+                        'down_nodes':[]}
         target_node = str()
 
         for _ in range(0,3):
@@ -41,6 +42,7 @@ class NodeRing:
             else:
                 target_node = _cp_hr.get(bucket_name)['hostname']
                 _cp_hr.remove_node(target_node)
+                replica_nodes['down_nodes'].append(target_node)
         
         for _ in range(0,2):
             #works only for 5 node cluster

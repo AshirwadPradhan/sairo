@@ -49,7 +49,7 @@ def get_all_buckets():
     buckets = []
     for node in cluster_nodes:
         try:
-            r =  requests.get('http://'+ node +'/getbucketlist')
+            r =  requests.get('http://'+ node +'/getbucketlist', timeout=1)
             buckets.extend(json.loads(r.text))
         except:
             print("ooo")
@@ -77,7 +77,7 @@ def delete_all_buckets():
         if data == 'true':
             cluster_nodes = ClusterNodes.get_cluster_nodes()
             for node in cluster_nodes:
-                r = requests.delete('http://'+ node +'/deleteallbuckets')
+                r = requests.delete('http://'+ node +'/deleteallbuckets', timeout=1)
         
             return "OK", 200
     
@@ -94,7 +94,7 @@ def get_objectlist(bucketName):
     bucket_objects = {}
     for node in nodes['member_nodes']:
         try:
-            r = requests.post('http://'+ node +'/getobjectlist', data={'bucketName' :bucketName})
+            r = requests.post('http://'+ node +'/getobjectlist', data={'bucketName' :bucketName}, timeout=1)
             bucket_objects.update(json.loads(r.text))
             count = count + 1
         except:
@@ -126,7 +126,7 @@ def uploads(bucketName, fileName):
 
     for i, node in enumerate(nodes['member_nodes']):
         try:
-            r = requests.post('http://'+ node +'/getobject', data={'bucketName' :bucketName, 'objectName': fileName})
+            r = requests.post('http://'+ node +'/getobject', data={'bucketName' :bucketName, 'objectName': fileName}, timeout=1)
             if 'txt' in fileName:
                 with open(os.path.join(app.config['OBS_TMP_OP_DIR'], str(i) + fileName), 'w') as f:
                     f.write(r.text)
@@ -193,11 +193,15 @@ def create_bucket():
                 # if available then send the post request to the first one
                 # if post req is success then pop the node from list and break the loop
                 # else check the the second node
+        print(f'{count}')
                 # if success then pop the node else
         if count < WRITE_COUNT:
             if nodes['backup_nodes']:
                 for index, backup_node in enumerate(nodes['backup_nodes']):
-                    res = requests.post('http://' + backup_node + '/createbackupbucket', data ={'bucketName': bucket_name, 'originalIP': node.split(':')[0]})
+                    if nodes['down_nodes'][index] is not None:
+                        original_ip = nodes['down_nodes'][index]
+                    
+                    res = requests.post('http://' + backup_node + '/createbackupbucket', data ={'bucketName': bucket_name, 'originalIP': original_ip.split(':')[0] })
                     if res.status_code == 200:
                         nodes['backup_nodes'].pop(index)
                         is_success = True
@@ -206,7 +210,6 @@ def create_bucket():
                     print('Both backup nodes are down')
             else:
                 print("No backup nodes availaable")
-            print("node down ---> " + node)
 
         return redirect(url_for('index'))
 
@@ -226,18 +229,20 @@ def create_object(bucketName):
         is_success = False
         count = 0
         nodes = get_nodes(bucketName)
+    
         for node in nodes['member_nodes']:
             try:
-                r = requests.post("http://"+ node +"/createobject", files=sendFile, data={'bucketName': bucketName})
+                r = requests.post("http://"+ node +"/createobject", files=sendFile, data={'bucketName': bucketName}, timeout=1)
                 count = count + 1
                 print('Created object in ' + node)
             except:
                 print("node down (createobject) -->" + node)
-
         if count < WRITE_COUNT:
             if nodes['backup_nodes']:
                 for index, backup_node in enumerate(nodes['backup_nodes']):
-                    res = requests.post('http://' + backup_node + '/createbackupobject', files=sendFile, data ={'bucketName': bucketName, 'originalIP': node.split(':')[0]})
+                    if nodes['down_nodes'][index] is not None:
+                        original_ip = nodes['down_nodes'][index]
+                    res = requests.post('http://' + backup_node + '/createbackupobject', files=sendFile, data ={'bucketName': bucketName, 'originalIP': original_ip.split(':')[0]})
                     if res.status_code == 200:
                         nodes['backup_nodes'].pop(index)
                         is_success = True
