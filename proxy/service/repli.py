@@ -1,7 +1,6 @@
 import os
 import subprocess
 import yaml
-import paramiko
 from pathlib import Path
 
 
@@ -45,14 +44,13 @@ ipdict =	{
             "192.168.3.10": "shashank",
             "192.168.3.11": "vm2",
             "192.168.3.12": "shashank",
-            "192.168.3.13": "vm1",
             "192.168.3.14": "jack",
             "192.168.3.15": "vm4"
         }
 
 for dir_ip in os.listdir(OBS_SAIRO_HANDOFF):
     abs_dir_path = os.path.join(OBS_SAIRO_HANDOFF, dir_ip)
-
+    basepath = ''
     for contents in os.listdir(abs_dir_path):
         # print(contents)
         basepath = os.path.join(OBS_SAIRO_HANDOFF, dir_ip, contents)
@@ -63,6 +61,9 @@ for dir_ip in os.listdir(OBS_SAIRO_HANDOFF):
         try:
             cp = subprocess.run('scp -r '+basepath+' '+username+'@'+dir_ip[:-5]+':'+'/home/'+username+'/.sairo' , shell=True, check=True)
             if cp.returncode == 0:
-                print(f'{temp_handoff_node} Directory Created')
+                print(f'{basepath} scp successful....')
+            cp = subprocess.run('rm -rf '+basepath, shell=True, check=True)
+            if cp.returncode == 0:
+                print(f'{basepath} backup delete successful....')
         except subprocess.CalledProcessError as e:
             print(e.stderr)
