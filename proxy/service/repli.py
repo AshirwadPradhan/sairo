@@ -41,14 +41,7 @@ for node in cluster_nodes:
         except subprocess.CalledProcessError as e:
             print(e.stderr)
 
-
-
-class SSHCopy:
-
-    @staticmethod
-    def ssh_file_copy(ip, source, destination):
-
-        ipdict =	{
+ipdict =	{
             "192.168.3.10": "shashank",
             "192.168.3.11": "vm2",
             "192.168.3.12": "shashank",
@@ -57,64 +50,19 @@ class SSHCopy:
             "192.168.3.15": "vm4"
         }
 
-        user_name = ipdict[ip]
+for dir_ip in os.listdir(OBS_SAIRO_HANDOFF):
+    abs_dir_path = os.path.join(OBS_SAIRO_HANDOFF, dir_ip)
 
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        ssh_client.connect(hostname=ip,username=user_name,password='')
-
-
-        sftp_client = ssh_client.open_sftp()
-        sftp_client.put(source,destination)
-
-        sftp_client.close()
-        ssh_client.close()
-    
-    @staticmethod
-    def ssh_mkdir(ip, path):
-
-        ipdict =	{
-            "192.168.3.10": "shashank",
-            "192.168.3.11": "vm2",
-            "192.168.3.12": "shashank",
-            "192.168.3.13": "vm1",
-            "192.168.3.14": "jack",
-            "192.168.3.15": "vm4"
-        }
-
-        user_name = ipdict[ip]
-
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        ssh_client.connect(hostname=ip,username=user_name,password='')
-
-
-        sftp_client = ssh_client.open_sftp()
-        sftp_client.mkdir(path)
-
-        sftp_client.close()
-        ssh_client.close()
-
-for ip in os.listdir(OBS_SAIRO_HANDOFF):
-
-    for bucket in os.listdir(os.path.join(OBS_SAIRO_HANDOFF, ip)):
-
-        dest_bucket_path = os.path.join(OBS_BUCKET_DIR, bucket)
-        # SSHCopy.ssh_mkdir(ip, dest_bucket_path)
-        print(f'Created bucket {bucket} in {ip}')
-
-        for obj in os.listdir(os.path.join(OBS_BUCKET_DIR, ip, bucket)):
-
-            if os.path.isdir(obj):
-                dest_obj_path = os.path.join(OBS_BUCKET_DIR, bucket, obj)
-                # SSHCopy.ssh_mkdir(ip, dest_obj_path)
-                print(f'Created folder {obj} in bucket {bucket} in {ip}')
-
-                for ser_obs in os.listdir(obj):
-                    # SSHCopy.ssh_file_copy(ip, os.path.abspath(ser_obs), dest_obj_path)
-                    print(f'Created file {ser_obs} in folder {obj}')
-            else:
-                # SSHCopy.ssh_file_copy(ip, os.path.abspath(obj), dest_bucket_path)
-                print(f'Created file {obj} in bucket {dest_bucket_path} in {ip}')
+    for contents in os.listdir(abs_dir_path):
+        # print(contents)
+        basepath = os.path.join(OBS_SAIRO_HANDOFF, dir_ip, contents)
+        print(basepath)
+        # print(dir_ip[:-5])
+        username = ipdict.get(dir_ip[:-5])
+        # print(username)
+        try:
+            cp = subprocess.run('scp -r '+basepath+' '+username+'@'+dir_ip[:-5]+':'+'/home/'+username+'/.sairo' , shell=True, check=True)
+            if cp.returncode == 0:
+                print(f'{temp_handoff_node} Directory Created')
+        except subprocess.CalledProcessError as e:
+            print(e.stderr)
